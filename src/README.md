@@ -8,6 +8,7 @@ A list of bugs, mistakes, or misleading traps ever made in distributed consensus
 
 - **Bug**: a bug that will break the consensus.
 - **Trap**: Not a bug, but somehow misleading. People may believe it is a bug.
+- **Suboptimal**: a solution that works, but not in the best way.
 
 <!-- #### List -->
 
