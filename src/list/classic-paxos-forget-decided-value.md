@@ -33,7 +33,7 @@ Sadly:
 > implementations and they **all had the bug submitted by the OP**!
 
 
-#### References
+**References**:
 
 - [Marc Brooker's blog](https://brooker.co.za/blog/2021/11/16/paxos.html)
 - [On stackoverflow](https://stackoverflow.com/questions/29880949/contradiction-in-lamports-paxos-made-simple-paper)

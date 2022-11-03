@@ -5,13 +5,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    # - uses: drmingdrmer/md2zhihu@main
-    - uses: drmingdrmer/md2zhihu@ci
+    - uses: drmingdrmer/md2zhihu@main
 
       env:
         GITHUB_USERNAME: ${{ github.repository_owner }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         output_dir: .
+        # disable push for md2zhihu
+        output_branch: ""
         pattern: >
             src/README.md
+
+    - name: build TOC
+      shell: bash
+      run: |
+        npm install -g --verbose doctoc
+        make toc
+
+    - name: commit and push
+      shell: bash
+      run: |
+        git add ./README.md
+
+        git \
+          -c "user.name=drmingdrmer" \
+          -c "user.email=drdr.xp@gmail.com" \
+          commit \
+          --allow-empty \
+          -m "CI: build readme"
+
+        git push -f origin HEAD:${{ github.ref }}-md2zhihu

@@ -9,6 +9,7 @@ A list of bugs, mistakes, or misleading traps ever made in distributed consensus
 
 -   **Bug**: a bug that will break the consensus.
 -   **Trap**: Not a bug, but somehow misleading. People may believe it is a bug.
+-   **Suboptimal**: a solution that works, but not in the best way.
 
 <!-- #### List -->
 
@@ -50,6 +51,33 @@ Sadly:
 
 -   [Marc Brooker's blog](https://brooker.co.za/blog/2021/11/16/paxos.html)
 -   [On stackoverflow](https://stackoverflow.com/questions/29880949/contradiction-in-lamports-paxos-made-simple-paper)
+
+## (Suboptimal) Raft: Leader Step Down
+
+Quote from raft paper "6. Cluster membership changes":
+
+> The second issue is that the cluster leader may not be part of the new configuration.
+> In this case, the leader steps down (returns to follower state) once it has committed the <img src="https://www.zhihu.com/equation?tex=C_%7Bnew%7D" alt="C_{new}" class="ee_img tr_noresize" eeimg="1"> log entry.
+
+
+Despite being unable to cast a ballot(vote) for other candidates, a learner(AKA non-voter, a node removed from cluster config) can nevertheless be a leader(or become a candidate).
+
+-   This non-voting leader handles write operations in the same way as a normal leader, except the local log store does not count in majority.
+-   A non-voting leader handles read operations in the same way as a normal leader.
+
+#### Simplify leader stepping down
+
+When a leader commits <img src="https://www.zhihu.com/equation?tex=C_%7Bnew%7D" alt="C_{new}" class="ee_img tr_noresize" eeimg="1">, it does **NOT** give up leadership, but just
+keep serving as leader.
+
+This way, membership config log does not need to be dealt with specially by an
+implementation. The (non-voting) leader will be removed only if it is required:
+by just shutting down the non-voting leader or informing it to transfer its
+leadership to another node.
+
+#### References
+
+-   [Raft consensus algorithm](https://raft.github.io/)
 
 # Contribution
 
