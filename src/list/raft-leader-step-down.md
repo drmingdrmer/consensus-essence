@@ -1,4 +1,4 @@
-## (Suboptimal) Raft: Leader Step Down
+## Raft: (Suboptimal): Leader Step Down
 
 > In the raft paper:
 > 6. Cluster membership changes

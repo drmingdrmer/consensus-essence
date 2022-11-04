@@ -1,4 +1,4 @@
-## (Trap) The Bug in Paxos Made Simple
+## Paxos: (Trap): The Bug in Paxos Made Simple
 
 This is not a bug but people tend to interpret it in the wrong way.
 
