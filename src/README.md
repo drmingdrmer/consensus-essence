@@ -2,7 +2,9 @@
 
 <!-- DO NOT EDIT README.md directly. It is built from [src/README.md](src/README.md). -->
 
-A list of bugs, mistakes, or misleading traps ever made in distributed consensus protocols.
+It's challenging to detect bugs in the realm of distributed consensus, and event
+a small problem could result in data loss.
+This repo is a list of distributed consensus protocol's bugs, flaws, and deceptive traps.
 
 |  Issue type    | description                                                        |
 |  ---           | ---                                                                |
@@ -29,6 +31,9 @@ A list of bugs, mistakes, or misleading traps ever made in distributed consensus
 ---
 
 **Contribution**
+
+Thank you for sharing an distributed consensus bug/issue.
+Even a small problem could result in data loss.
 
 - Update or add a snippet in the [src/list](src/list).
 
