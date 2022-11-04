@@ -1,17 +1,43 @@
 # Consensus bugs
 
-A list of bugs, mistakes, or misleading traps ever made in distributed consensus protocols.
+<!-- DO NOT EDIT README.md directly. It is built from [src/README.md](src/README.md). -->
 
-> DO NOT EDIT README.md directly. It is built from [src/README.md](src/README.md).
+It's challenging to detect bugs in the realm of distributed consensus, and event
+a small problem could result in data loss.
+This repo is a list of distributed consensus protocol's bugs, flaws, and deceptive traps.
 
+<table>
+<tr class="header">
+<th>Issue type</th>
+<th>description</th>
+</tr>
+<tr class="odd">
+<td><strong>Bug</strong></td>
+<td>a bug that will break the consensus.</td>
+</tr>
+<tr class="even">
+<td><strong>Trap</strong></td>
+<td>not a bug, but somehow misleading. People may believe it is a bug.</td>
+</tr>
+<tr class="odd">
+<td><strong>Suboptimal</strong></td>
+<td>a solution that works, but not in the best way.</td>
+</tr>
+</table>
 
-**Item types**:
+## Issues
 
--   **Bug**: a bug that will break the consensus.
--   **Trap**: Not a bug, but somehow misleading. People may believe it is a bug.
--   **Suboptimal**: a solution that works, but not in the best way.
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [(Trap) The Bug in Paxos Made Simple](#trap-the-bug-in-paxos-made-simple)
+- [(Suboptimal) Raft: Leader Step Down](#suboptimal-raft-leader-step-down)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 <!-- #### List -->
+
+---
 
 ## (Trap) The Bug in Paxos Made Simple
 
@@ -47,25 +73,30 @@ Sadly:
 > implementations and they **all had the bug submitted by the OP**!
 
 
-#### References
+**References**:
 
 -   [Marc Brooker's blog](https://brooker.co.za/blog/2021/11/16/paxos.html)
 -   [On stackoverflow](https://stackoverflow.com/questions/29880949/contradiction-in-lamports-paxos-made-simple-paper)
 
 ## (Suboptimal) Raft: Leader Step Down
 
-Quote from raft paper "6. Cluster membership changes":
-
+> In the raft paper:
+> 6. Cluster membership changes
+> 
 > The second issue is that the cluster leader may not be part of the new configuration.
 > In this case, the leader steps down (returns to follower state) once it has committed the <img src="https://www.zhihu.com/equation?tex=C_%7Bnew%7D" alt="C_{new}" class="ee_img tr_noresize" eeimg="1"> log entry.
 
 
-Despite being unable to cast a ballot(vote) for other candidates, a learner(AKA non-voter, a node removed from cluster config) can nevertheless be a leader(or become a candidate).
+A leader does **NOT** have to give up leadership:
 
--   This non-voting leader handles write operations in the same way as a normal leader, except the local log store does not count in majority.
--   A non-voting leader handles read operations in the same way as a normal leader.
+Despite being unable to cast a ballot(vote) for other candidates, a learner(AKA
+non-voter, a node removed from cluster config) can nevertheless be a leader(or
+become a candidate) as long as it wants. This non-voting leader:
 
-#### Simplify leader stepping down
+-   handles write operations in the same way as a normal leader, except the local log store does not count in majority.
+-   handles read operations in the same way as a normal leader.
+
+#### Improvement
 
 When a leader commits <img src="https://www.zhihu.com/equation?tex=C_%7Bnew%7D" alt="C_{new}" class="ee_img tr_noresize" eeimg="1">, it does **NOT** give up leadership, but just
 keep serving as leader.
@@ -75,11 +106,16 @@ implementation. The (non-voting) leader will be removed only if it is required:
 by just shutting down the non-voting leader or informing it to transfer its
 leadership to another node.
 
-#### References
+**References**:
 
 -   [Raft consensus algorithm](https://raft.github.io/)
 
-# Contribution
+---
+
+**Contribution**
+
+Thank you for sharing an distributed consensus bug/issue.
+Even a small problem could result in data loss.
 
 -   Update or add a snippet in the [src/list](src/list).
 
