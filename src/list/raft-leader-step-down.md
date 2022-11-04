@@ -5,8 +5,10 @@
 >
 > The second issue is that the cluster leader may not be part of the new configuration.
 > In this case, the leader steps down (returns to follower state) once it has committed the $C_{new}$ log entry.
+>
+> ![](./raft-leader-step-down-std.jpeg)
 
-A leader does **NOT** have to give up leadership:
+But the leader does **NOT** have to give up leadership:
 
 Despite being unable to cast a ballot(vote) for other candidates, a learner(AKA
 non-voter, a node removed from cluster config) can nevertheless be a leader(or
@@ -15,6 +17,7 @@ become a candidate) as long as it wants. This non-voting leader:
 - handles write operations in the same way as a normal leader, except the local log store does not count in majority.
 - handles read operations in the same way as a normal leader.
 
+![](./raft-leader-step-down-optimize.jpeg)
 
 #### Improvement
 
