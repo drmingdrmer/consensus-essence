@@ -30,8 +30,8 @@ This repo is a list of distributed consensus protocol's bugs, flaws, and decepti
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [(Trap) The Bug in Paxos Made Simple](#trap-the-bug-in-paxos-made-simple)
-- [(Suboptimal) Raft: Leader Step Down](#suboptimal-raft-leader-step-down)
+- [Paxos: (Trap): The Bug in Paxos Made Simple](#paxos-trap-the-bug-in-paxos-made-simple)
+- [Raft: (Suboptimal): Leader Step Down](#raft-suboptimal-leader-step-down)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -39,7 +39,7 @@ This repo is a list of distributed consensus protocol's bugs, flaws, and decepti
 
 ---
 
-## (Trap) The Bug in Paxos Made Simple
+## Paxos: (Trap): The Bug in Paxos Made Simple
 
 This is not a bug but people tend to interpret it in the wrong way.
 
@@ -78,23 +78,31 @@ Sadly:
 -   [Marc Brooker's blog](https://brooker.co.za/blog/2021/11/16/paxos.html)
 -   [On stackoverflow](https://stackoverflow.com/questions/29880949/contradiction-in-lamports-paxos-made-simple-paper)
 
-## (Suboptimal) Raft: Leader Step Down
+## Raft: (Suboptimal): Leader Step Down
 
 > In the raft paper:
 > 6. Cluster membership changes
 > 
 > The second issue is that the cluster leader may not be part of the new configuration.
 > In this case, the leader steps down (returns to follower state) once it has committed the <img src="https://www.zhihu.com/equation?tex=C_%7Bnew%7D" alt="C_{new}" class="ee_img tr_noresize" eeimg="1"> log entry.
+> 
+> ![](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-bugs@main-md2zhihu-asset/README/b29339428b745edd-raft-leader-step-down-std.jpeg)
 
 
-A leader does **NOT** have to give up leadership:
+But the leader does **NOT** have to give up leadership:
 
-Despite being unable to cast a ballot(vote) for other candidates, a learner(AKA
+Despite it **should not** cast a ballot(vote) for other candidates, a learner(AKA
 non-voter, a node removed from cluster config) can nevertheless be a leader(or
 become a candidate) as long as it wants. This non-voting leader:
 
 -   handles write operations in the same way as a normal leader, except the local log store does not count in majority.
 -   handles read operations in the same way as a normal leader.
+
+**NOTE**: A learner(non-voter) does not have to reject vote requests.
+Because raft ensures that a candidate using the second-to-last committed config
+would never become the leader. Thanks to [Gao Xinge](https://www.zhihu.com/people/gao-xinge).
+
+![](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-bugs@main-md2zhihu-asset/README/cb9ebf5135722aaa-raft-leader-step-down-optimize.jpeg)
 
 #### Improvement
 
