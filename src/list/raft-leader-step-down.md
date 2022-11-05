@@ -10,12 +10,16 @@
 
 But the leader does **NOT** have to give up leadership:
 
-Despite being unable to cast a ballot(vote) for other candidates, a learner(AKA
+Despite it **should not** cast a ballot(vote) for other candidates, a learner(AKA
 non-voter, a node removed from cluster config) can nevertheless be a leader(or
 become a candidate) as long as it wants. This non-voting leader:
 
 - handles write operations in the same way as a normal leader, except the local log store does not count in majority.
 - handles read operations in the same way as a normal leader.
+
+**NOTE**: A learner(non-voter) does not have to reject vote requests.
+Because raft ensures that a candidate using the second-to-last committed config
+would never become the leader. Thanks to [Gao Xinge](https://www.zhihu.com/people/gao-xinge).
 
 ![](./raft-leader-step-down-optimize.jpeg)
 
