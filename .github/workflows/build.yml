@@ -28,11 +28,13 @@ jobs:
       run: |
         git add ./README.md
 
+        changes="$(git diff --stat --cached | head -n1)"
+
         git \
           -c "user.name=drmingdrmer" \
           -c "user.email=drdr.xp@gmail.com" \
           commit \
           --allow-empty \
-          -m "CI: build readme"
+          -m "CI: build README: $changes"
 
         git push -f origin HEAD:${{ github.ref }}-md2zhihu
