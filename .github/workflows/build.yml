@@ -16,6 +16,7 @@ jobs:
         output_branch: ""
         pattern: >
             src/README.md
+            src/CN.md
 
     - name: build TOC
       shell: bash
@@ -27,6 +28,7 @@ jobs:
       shell: bash
       run: |
         git add ./README.md
+        git add ./CN.md
 
         changes="$(git diff --stat --cached | head -n1)"
 

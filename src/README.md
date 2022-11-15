@@ -1,5 +1,7 @@
 # Consensus bugs
 
+[中文版](CN.md)
+
 <!-- DO NOT EDIT README.md directly. It is built from [src/README.md](src/README.md). -->
 
 It's challenging to detect bugs in the realm of distributed consensus, and event
