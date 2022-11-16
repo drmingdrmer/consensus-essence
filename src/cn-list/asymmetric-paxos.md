@@ -32,13 +32,13 @@
 
 ### Asymmetric Paxos
 
-因为我们可以从一个线性方程组 $ax+by=d_1, cx+dy=d_2$ 解得 `x`, `y` 的值, 所以可以利用这个特性, 让 paxos 中的 acceptor 上存储不同的值(asymmetric), 来实现数据冗余的降低.
+因为我们可以从一个线性方程组 $ax+by=d_1, cx+dy=d_2$ 解得 $x, y$ 的值, 所以可以利用这个特性, 让 paxos 中的 acceptor 上存储不同的值(asymmetric), 来实现数据冗余的降低.
 
 ![ec](../list/asymmetric-paxos-ec.jpeg)
 
-- 一个 proposer(quorum是: $q_i$) 将 `x`, `y`, `x+y`, `x-y` 存储到 acceptor 1 到 4 上(至少成功3个, 以完成对 `x`, `y` 的提交).
+- 一个 proposer(quorum是: $q_i$) 将 $x, y, x+y, x-y$ 存储到 acceptor 1 到 4 上(至少成功3个, 以完成对 $x, y$ 的提交).
 
-- 当下一个 proposer(quorum是: $q_j$) 通过这几个 acceptor 来重建(也就是读) `x` 和 `y` 的值的时候, 它必须访问到**上面4个值其中的至少2个**.
+- 当下一个 proposer(quorum是: $q_j$) 通过这几个 acceptor 来重建(也就是读) $x, y$ 的值的时候, 它必须访问到**上面4个值其中的至少2个**.
   因此任意2个 quorum 的交集至少为2个 acceptor:
 
   $$
@@ -55,7 +55,7 @@
 在这样一个 4 节点非对称 paxos 集群中:
 - 数据冗余度是 200%;
 - 容忍 1 个节点宕机;
-- 可用性大约是 ${ 4 \choose 2  } p^2$, 其中 `p` 是 acceptor 单位时间内的故障率.
+- 可用性大约是 ${ 4 \choose 2  } p^2$, 其中 p 是 acceptor 单位时间内的故障率.
 
 
 ### Asymmetric Paxos 5-4
