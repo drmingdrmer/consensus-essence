@@ -36,7 +36,7 @@
 
 ![ec](../list/asymmetric-paxos-ec.jpeg)
 
-- 一个 proposer(quorum是: $q_i$) 将 `x`, `y`, `x+y`, `x-y` 存储到 acceptor 1 到 4 上(至少成功3个, 以完成对 `x` 的提交).
+- 一个 proposer(quorum是: $q_i$) 将 `x`, `y`, `x+y`, `x-y` 存储到 acceptor 1 到 4 上(至少成功3个, 以完成对 `x`, `y` 的提交).
 
 - 当下一个 proposer(quorum是: $q_j$) 通过这几个 acceptor 来重建(也就是读) `x` 和 `y` 的值的时候, 它必须访问到**上面4个值其中的至少2个**.
   因此任意2个 quorum 的交集至少为2个 acceptor:
