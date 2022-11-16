@@ -48,7 +48,7 @@
   即, 4节点集群中一个 quorum 是任意 3 个 acceptors:
 
   $$
-  |q_i| \ge 4
+  |q_i| \ge 3
   $$
 
 

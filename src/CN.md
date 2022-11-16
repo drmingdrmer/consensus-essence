@@ -1,4 +1,4 @@
-# 分布式真知表
+# 分布式要义明细
 
 [English version](README.md)
 

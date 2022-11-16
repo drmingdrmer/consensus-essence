@@ -52,7 +52,7 @@ acceptor states can be **asymmetric** so that more data can be reduced:
   A quorum for a cluster of 4 is any 3 acceptors:
 
   $$
-  |q_i| \ge 4
+  |q_i| \ge 3
   $$
 
 
