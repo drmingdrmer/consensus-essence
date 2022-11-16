@@ -12,6 +12,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         output_dir: .
+        target_platform: github
         # disable push for md2zhihu
         output_branch: ""
         pattern: >
