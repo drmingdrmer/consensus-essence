@@ -47,13 +47,17 @@ jobs:
         git add ./README.md
         git add ./CN.md
 
-        changes="$(git diff --stat --cached | head -n1)"
+        if git diff-index --quiet HEAD --; then
+          echo "Nothing to commit"
+        else
+          changes="$(git diff --stat --cached | head -n1)"
 
-        git \
-          -c "user.name=drmingdrmer" \
-          -c "user.email=drdr.xp@gmail.com" \
-          commit \
-          --allow-empty \
-          -m "CI: build README: $changes"
+          git \
+            -c "user.name=drmingdrmer" \
+            -c "user.email=drdr.xp@gmail.com" \
+            commit \
+            --allow-empty \
+            -m "CI: build README: $changes"
+        fi
 
         git push -f origin HEAD:${{ github.ref }}-md2zhihu
