@@ -1,12 +1,12 @@
-# Consensus bugs
+# Distributed Consensus Essence
 
 [中文版](CN.md)
 
 <!-- DO NOT EDIT README.md directly. It is built from [src/README.md](src/README.md). -->
 
-It's challenging to detect bugs in the realm of distributed consensus, and event
+It's challenging to design, to implement or to detect bugs in the realm of distributed consensus, and even
 a small problem could result in data loss.
-This repo is a list of distributed consensus protocol's bugs, flaws, and deceptive traps.
+This repo is a list of distributed consensus protocol's bugs, flaws, deceptive traps, and improvements.
 
 <table>
 <tr class="header">
@@ -24,6 +24,10 @@ This repo is a list of distributed consensus protocol's bugs, flaws, and decepti
 <tr class="odd">
 <td><strong>Suboptimal</strong></td>
 <td>a solution that works, but not in the best way.</td>
+</tr>
+<tr class="even">
+<td><strong>Optimize</strong></td>
+<td>Improvement to a current design.</td>
 </tr>
 </table>
 
@@ -63,6 +67,86 @@ Sadly:
 
 -   [Marc Brooker's blog](https://brooker.co.za/blog/2021/11/16/paxos.html)
 -   [On stackoverflow](https://stackoverflow.com/questions/29880949/contradiction-in-lamports-paxos-made-simple-paper)
+
+## Paxos: (Optimize): Asymmetric Acceptors
+
+An [erasure-code](https://en.wikipedia.org/wiki/Erasure_code) like algorithm can be applied to the storage layer of
+paxos to reduce data redundancy.
+
+### Paxos
+
+In [classic Paxos](http://lamport.azurewebsites.net/pubs/pubs.html#paxos-simple),
+acceptors are **symmetric**:
+
+![classic](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-bugs@main-wechat-asset/README/a2526c0de69276bb-asymmetric-paxos-classic.jpeg)
+
+-   A proposer(quorum: <img src="https://www.zhihu.com/equation?tex=q_i" alt="q_i" class="ee_img tr_noresize" eeimg="1">) stores value <img src="https://www.zhihu.com/equation?tex=x" alt="x" class="ee_img tr_noresize" eeimg="1"> on acceptors(at least 2 acceptors) to commit <img src="https://www.zhihu.com/equation?tex=x" alt="x" class="ee_img tr_noresize" eeimg="1">.
+
+-   To rebuild(read) <img src="https://www.zhihu.com/equation?tex=x" alt="x" class="ee_img tr_noresize" eeimg="1"> from acceptors, another proposer(quorum: <img src="https://www.zhihu.com/equation?tex=q_j" alt="q_j" class="ee_img tr_noresize" eeimg="1">) has to visit one of the acceptor that holds the committed value.
+    Thus two quorums must have at least 1 common acceptors:
+
+    <img src="https://www.zhihu.com/equation?tex=%7Cq_i%20%5Ccap%20q_j%7C%20%5Cge%201%5C%5C" alt="|q_i \cap q_j| \ge 1\\" class="ee_img tr_noresize" eeimg="1">
+
+    I.e., a quorum for a cluster of 3 is any 2 acceptors:
+
+    <img src="https://www.zhihu.com/equation?tex=%7Cq_i%7C%20%5Cge%202%5C%5C" alt="|q_i| \ge 2\\" class="ee_img tr_noresize" eeimg="1">
+
+In a classic paxos of 3 acceptors:
+
+-   Redundancy is 300%;
+-   Tolerates 1 failure;
+-   Availability is about <img src="https://www.zhihu.com/equation?tex=%7B%203%20%5Cchoose%202%20%20%7D%20p%5E2" alt="{ 3 \choose 2  } p^2" class="ee_img tr_noresize" eeimg="1">, where <img src="https://www.zhihu.com/equation?tex=p" alt="p" class="ee_img tr_noresize" eeimg="1"> is acceptor failure rate.
+
+### Asymmetric Paxos
+
+Because we can rebuild <img src="https://www.zhihu.com/equation?tex=x%2C%20y" alt="x, y" class="ee_img tr_noresize" eeimg="1"> from a linear equation system <img src="https://www.zhihu.com/equation?tex=ax%2Bby%3Dd_1%2C%20cx%2Bdy%3Dd_2" alt="ax+by=d_1, cx+dy=d_2" class="ee_img tr_noresize" eeimg="1">,
+acceptor states can be **asymmetric** so that more data can be stored:
+
+![ec](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-bugs@main-wechat-asset/README/96fabef4536cbf04-asymmetric-paxos-ec.jpeg)
+
+-   A proposer(quorum: <img src="https://www.zhihu.com/equation?tex=q_i" alt="q_i" class="ee_img tr_noresize" eeimg="1">) stores <img src="https://www.zhihu.com/equation?tex=x%2C%20y%2C%20x%2By%2C%20x-y" alt="x, y, x+y, x-y" class="ee_img tr_noresize" eeimg="1"> on acceptor 1 to 4(at least 3 of
+      them) to commit <img src="https://www.zhihu.com/equation?tex=x%2C%20y" alt="x, y" class="ee_img tr_noresize" eeimg="1">.
+
+-   To rebuild(read) <img src="https://www.zhihu.com/equation?tex=x%2C%20y" alt="x, y" class="ee_img tr_noresize" eeimg="1"> from acceptors, another proposer(quorum: <img src="https://www.zhihu.com/equation?tex=q_j" alt="q_j" class="ee_img tr_noresize" eeimg="1">) has to visit at least two of the **4 values**.
+    Thus two quorums must have at least 2 common acceptors:
+
+    <img src="https://www.zhihu.com/equation?tex=%7Cq_i%20%5Ccap%20q_j%7C%20%5Cge%202%5C%5C" alt="|q_i \cap q_j| \ge 2\\" class="ee_img tr_noresize" eeimg="1">
+
+    A quorum for a cluster of 4 is any 3 acceptors:
+
+    <img src="https://www.zhihu.com/equation?tex=%7Cq_i%7C%20%5Cge%203%5C%5C" alt="|q_i| \ge 3\\" class="ee_img tr_noresize" eeimg="1">
+
+With such a policy:
+
+-   Redundancy is 200%;
+-   Tolerates 1 failure;
+-   Availability is about <img src="https://www.zhihu.com/equation?tex=%7B%204%20%5Cchoose%202%20%20%7D%20p%5E2" alt="{ 4 \choose 2  } p^2" class="ee_img tr_noresize" eeimg="1">, where <img src="https://www.zhihu.com/equation?tex=p" alt="p" class="ee_img tr_noresize" eeimg="1"> is acceptor failure rate.
+
+### Asymmetric Paxos 5-4
+
+In a paxos cluster with 5 asymmetric acceptors can store 3 independent values
+<img src="https://www.zhihu.com/equation?tex=x%2C%20y%2C%20z" alt="x, y, z" class="ee_img tr_noresize" eeimg="1">:
+
+![ec53](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-bugs@main-wechat-asset/README/2a7885bbefbdfad8-asymmetric-paxos-ec-53.jpeg)
+
+A proposer stores <img src="https://www.zhihu.com/equation?tex=x%2C%20y%2C%20z%2C%20x%2By%2Bz%2C%20x%2B2y%2B4z" alt="x, y, z, x+y+z, x+2y+4z" class="ee_img tr_noresize" eeimg="1"> on acceptor 1 to 5.
+To rebuild these 3 values, this must hold: <img src="https://www.zhihu.com/equation?tex=%7Cq_i%20%5Ccap%20q_j%7C%20%5Cge%203" alt="|q_i \cap q_j| \ge 3" class="ee_img tr_noresize" eeimg="1">.
+Thus quorum size is at least 4: <img src="https://www.zhihu.com/equation?tex=%7Cq_i%7C%20%5Cge%204" alt="|q_i| \ge 4" class="ee_img tr_noresize" eeimg="1">.
+
+With this policy:
+
+-   Redundancy is 140%;
+-   Tolerates 1 failure;
+-   Availability is about <img src="https://www.zhihu.com/equation?tex=%7B%205%20%5Cchoose%202%20%20%7D%20p%5E2" alt="{ 5 \choose 2  } p^2" class="ee_img tr_noresize" eeimg="1">.
+
+### Summary
+
+The avaiability decreases slightly while the data redundancy is reduced in [asymmetric Paxos](list/TODO).
+
+This algorithm applies to paxos and its variants but not to [raft](https://raft.github.io/).
+Because it requires more than one nodes to rebuild a committed value.
+
+![chart](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-bugs@main-wechat-asset/README/781c336bed9bc848-asymmetric-paxos-chart.jpeg)
 
 ## Raft: (Suboptimal): Leader Step Down
 
