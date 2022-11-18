@@ -81,7 +81,7 @@ With this policy:
 
 ### Summary
 
-The avaiability decreases slightly while the data redundancy is reduced in [asymmetric Paxos](TODO).
+The avaiability decreases slightly while the data redundancy is reduced in [asymmetric Paxos](https://github.com/drmingdrmer/consensus-bugs#paxos-optimize-asymmetric-acceptors).
 
 This algorithm applies to paxos and its variants but not to [raft](https://raft.github.io/).
 Because it requires more than one nodes to rebuild a committed value.
