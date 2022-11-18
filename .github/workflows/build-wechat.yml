@@ -1,0 +1,21 @@
+name: build README.md
+on: [push]
+jobs:
+  md2zhihu:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: drmingdrmer/md2zhihu@main
+
+      env:
+        GITHUB_USERNAME: ${{ github.repository_owner }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        output_dir: ./_wechat
+        target_platform: wechat
+        asset_branch: "${{ github.ref_name }}-wechat-asset"
+        output_branch: "${{ github.ref_name }}-wechat"
+        pattern: >
+            src/README.md
+            src/CN.md
