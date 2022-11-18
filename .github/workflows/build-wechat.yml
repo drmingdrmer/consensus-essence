@@ -15,7 +15,7 @@ jobs:
         output_dir: ./_wechat
         target_platform: wechat
         asset_branch: "${{ github.ref_name }}-wechat-asset"
-        output_branch: "${{ github.ref_name }}-wechat"
+        output_branch: "${{ github.ref_name }}-wechat-built"
         pattern: >
             src/README.md
             src/CN.md
