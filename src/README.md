@@ -28,6 +28,8 @@ This repo is a list of distributed consensus protocol's bugs, flaws, and decepti
 
 ![](list/classic-paxos-forget-decided-value.md)
 
+![](list/asymmetric-paxos.md)
+
 ![](list/raft-leader-step-down.md)
 
 ---
