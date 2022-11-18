@@ -1,18 +1,19 @@
-# Consensus bugs
+# Distributed Consensus Essence
 
 [中文版](CN.md)
 
 <!-- DO NOT EDIT README.md directly. It is built from [src/README.md](src/README.md). -->
 
-It's challenging to detect bugs in the realm of distributed consensus, and event
+It's challenging to design, to implement or to detect bugs in the realm of distributed consensus, and even
 a small problem could result in data loss.
-This repo is a list of distributed consensus protocol's bugs, flaws, and deceptive traps.
+This repo is a list of distributed consensus protocol's bugs, flaws, deceptive traps, and improvements.
 
 |  Issue type    | description                                                        |
 |  ---           | ---                                                                |
 | **Bug**        | a bug that will break the consensus.                               |
 | **Trap**       | not a bug, but somehow misleading. People may believe it is a bug. |
 | **Suboptimal** | a solution that works, but not in the best way.                    |
+| **Optimize**   | Improvement to a current design.                                   |
 
 ## Issues
 
