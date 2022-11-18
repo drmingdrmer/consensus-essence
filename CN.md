@@ -48,7 +48,7 @@
 
 在 [classic Paxos](http://lamport.azurewebsites.net/pubs/pubs.html#paxos-simple) 中, acceptors 是**对等**的 :
 
-![classic](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-bugs@main-md2zhihu-asset/CN/a2526c0de69276bb-asymmetric-paxos-classic.jpeg)
+![classic](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@main-md2zhihu-asset/CN/8f2689f1e7dba5f9-asymmetric-paxos-classic.jpeg)
 
 -   一个 proposer(quorum是: $q_i$) 将 $x$ 的值存储到 acceptor 上(至少2个 acceptor 上以完成对 $x$ 的提交).
 
@@ -71,7 +71,7 @@
 
 因为我们可以从一个线性方程组 $ax+by=d_1, cx+dy=d_2$ 解得 $x, y$ 的值, 所以可以利用这个特性, 让 paxos 中的 acceptor 上存储不同的值(asymmetric), 来实现数据冗余的降低.
 
-![ec](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-bugs@main-md2zhihu-asset/CN/96fabef4536cbf04-asymmetric-paxos-ec.jpeg)
+![ec](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@main-md2zhihu-asset/CN/0bb845a2df1a5134-asymmetric-paxos-ec.jpeg)
 
 -   一个 proposer(quorum是: $q_i$) 将 $x, y, x+y, x-y$ 存储到 acceptor 1 到 4 上(至少成功3个, 以完成对 $x, y$ 的提交).
 
@@ -94,7 +94,7 @@
 
 一个5节点的非对称 paxos 集群中, 可以存储3个相互独立的值 $x, y, z$:
 
-![ec53](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-bugs@main-md2zhihu-asset/CN/2a7885bbefbdfad8-asymmetric-paxos-ec-53.jpeg)
+![ec53](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@main-md2zhihu-asset/CN/586e20c6dfc9460f-asymmetric-paxos-ec-53.jpeg)
 
 一个 proposer 将 $x, y, z, x+y+z, x+2y+4z$ 5个值存储到 acceptor 1 到 5 上.
 为了重新读到这 3 个值, 必须保证: $|q_i \cap q_j| \ge 3$.
@@ -112,7 +112,7 @@
 
 这个算法只能应用于 paxos, 因为 [raft](https://raft.github.io/) 的 leader 只从本地一个副本重建committed的数据, 而这个算法需要2个或更多节点的数据.
 
-![chart](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-bugs@main-md2zhihu-asset/CN/781c336bed9bc848-asymmetric-paxos-chart.jpeg)
+![chart](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@main-md2zhihu-asset/CN/781c336bed9bc848-asymmetric-paxos-chart.jpeg)
 
 ---
 
