@@ -47,7 +47,7 @@
 
 在 [classic Paxos](http://lamport.azurewebsites.net/pubs/pubs.html#paxos-simple) 中, acceptors 是**对等**的 :
 
-![classic](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-bugs@main-wechat-asset/CN/a2526c0de69276bb-asymmetric-paxos-classic.jpeg)
+![classic](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@main-wechat-asset/CN/8f2689f1e7dba5f9-asymmetric-paxos-classic.jpeg)
 
 -   一个 proposer(quorum是: <img src="https://www.zhihu.com/equation?tex=q_i" alt="q_i" class="ee_img tr_noresize" eeimg="1">) 将 <img src="https://www.zhihu.com/equation?tex=x" alt="x" class="ee_img tr_noresize" eeimg="1"> 的值存储到 acceptor 上(至少2个 acceptor 上以完成对 <img src="https://www.zhihu.com/equation?tex=x" alt="x" class="ee_img tr_noresize" eeimg="1"> 的提交).
 
@@ -70,7 +70,7 @@
 
 因为我们可以从一个线性方程组 <img src="https://www.zhihu.com/equation?tex=ax%2Bby%3Dd_1%2C%20cx%2Bdy%3Dd_2" alt="ax+by=d_1, cx+dy=d_2" class="ee_img tr_noresize" eeimg="1"> 解得 <img src="https://www.zhihu.com/equation?tex=x%2C%20y" alt="x, y" class="ee_img tr_noresize" eeimg="1"> 的值, 所以可以利用这个特性, 让 paxos 中的 acceptor 上存储不同的值(asymmetric), 来实现数据冗余的降低.
 
-![ec](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-bugs@main-wechat-asset/CN/96fabef4536cbf04-asymmetric-paxos-ec.jpeg)
+![ec](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@main-wechat-asset/CN/0bb845a2df1a5134-asymmetric-paxos-ec.jpeg)
 
 -   一个 proposer(quorum是: <img src="https://www.zhihu.com/equation?tex=q_i" alt="q_i" class="ee_img tr_noresize" eeimg="1">) 将 <img src="https://www.zhihu.com/equation?tex=x%2C%20y%2C%20x%2By%2C%20x-y" alt="x, y, x+y, x-y" class="ee_img tr_noresize" eeimg="1"> 存储到 acceptor 1 到 4 上(至少成功3个, 以完成对 <img src="https://www.zhihu.com/equation?tex=x%2C%20y" alt="x, y" class="ee_img tr_noresize" eeimg="1"> 的提交).
 
@@ -93,7 +93,7 @@
 
 一个5节点的非对称 paxos 集群中, 可以存储3个相互独立的值 <img src="https://www.zhihu.com/equation?tex=x%2C%20y%2C%20z" alt="x, y, z" class="ee_img tr_noresize" eeimg="1">:
 
-![ec53](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-bugs@main-wechat-asset/CN/2a7885bbefbdfad8-asymmetric-paxos-ec-53.jpeg)
+![ec53](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@main-wechat-asset/CN/586e20c6dfc9460f-asymmetric-paxos-ec-53.jpeg)
 
 一个 proposer 将 <img src="https://www.zhihu.com/equation?tex=x%2C%20y%2C%20z%2C%20x%2By%2Bz%2C%20x%2B2y%2B4z" alt="x, y, z, x+y+z, x+2y+4z" class="ee_img tr_noresize" eeimg="1"> 5个值存储到 acceptor 1 到 5 上.
 为了重新读到这 3 个值, 必须保证: <img src="https://www.zhihu.com/equation?tex=%7Cq_i%20%5Ccap%20q_j%7C%20%5Cge%203" alt="|q_i \cap q_j| \ge 3" class="ee_img tr_noresize" eeimg="1">.
@@ -111,7 +111,7 @@
 
 这个算法只能应用于 paxos, 因为 [raft](https://raft.github.io/) 的 leader 只从本地一个副本重建committed的数据, 而这个算法需要2个或更多节点的数据.
 
-![chart](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-bugs@main-wechat-asset/CN/781c336bed9bc848-asymmetric-paxos-chart.jpeg)
+![chart](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@main-wechat-asset/CN/781c336bed9bc848-asymmetric-paxos-chart.jpeg)
 
 ---
 
