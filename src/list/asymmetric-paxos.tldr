@@ -1009,6 +1009,62 @@
               0.5,
               0.5
             ]
+          },
+          "9ab7f1af-44a7-4941-26f9-a8d764493882": {
+            "id": "9ab7f1af-44a7-4941-26f9-a8d764493882",
+            "type": "arrow",
+            "name": "Arrow",
+            "parentId": "page",
+            "childIndex": 62,
+            "point": [
+              757.67,
+              439.76
+            ],
+            "rotation": 0,
+            "bend": 0,
+            "handles": {
+              "start": {
+                "id": "start",
+                "index": 0,
+                "point": [
+                  0,
+                  0
+                ],
+                "canBind": true
+              },
+              "end": {
+                "id": "end",
+                "index": 1,
+                "point": [
+                  1300.77,
+                  0
+                ],
+                "canBind": true
+              },
+              "bend": {
+                "id": "bend",
+                "index": 2,
+                "point": [
+                  650.39,
+                  0
+                ]
+              }
+            },
+            "decorations": {},
+            "style": {
+              "color": "lightGray",
+              "size": "small",
+              "isFilled": false,
+              "dash": "dotted",
+              "scale": 1,
+              "font": "sans"
+            },
+            "label": "",
+            "labelPoint": [
+              0.5,
+              0.5
+            ],
+            "isLocked": false
           }
         },
         "bindings": {
@@ -2185,6 +2241,62 @@
               0.5,
               0.5
             ]
+          },
+          "ac811106-f300-4b2c-3a89-b4429fa5f88a": {
+            "id": "ac811106-f300-4b2c-3a89-b4429fa5f88a",
+            "type": "arrow",
+            "name": "Arrow",
+            "parentId": "81bc35f9-e550-4fee-3cd6-9d4d58d6a03c",
+            "childIndex": 65,
+            "point": [
+              757.67,
+              1249.76
+            ],
+            "rotation": 0,
+            "bend": 0,
+            "handles": {
+              "start": {
+                "id": "start",
+                "index": 0,
+                "point": [
+                  0,
+                  0
+                ],
+                "canBind": true
+              },
+              "end": {
+                "id": "end",
+                "index": 1,
+                "point": [
+                  1300.77,
+                  0
+                ],
+                "canBind": true
+              },
+              "bend": {
+                "id": "bend",
+                "index": 2,
+                "point": [
+                  650.39,
+                  0
+                ]
+              }
+            },
+            "decorations": {},
+            "style": {
+              "color": "lightGray",
+              "size": "small",
+              "isFilled": false,
+              "dash": "dotted",
+              "scale": 1,
+              "font": "sans"
+            },
+            "label": "",
+            "labelPoint": [
+              0.5,
+              0.5
+            ],
+            "isLocked": false
           }
         },
         "bindings": {
@@ -3879,7 +3991,7 @@
       },
       "077f2fed-313e-4a5f-2f98-9fd37bc3d51c": {
         "id": "077f2fed-313e-4a5f-2f98-9fd37bc3d51c",
-        "name": "asymmetric-paxos-ec-53 Copy",
+        "name": "asymmetric-paxos-chart",
         "childIndex": 1,
         "shapes": {
           "55f9c395-5040-439b-3d12-f45ad5b42044": {
