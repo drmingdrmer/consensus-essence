@@ -4,12 +4,13 @@
 
 <!-- DO NOT EDIT README.md directly. It is built from [src/README.md](src/README.md). -->
 
-|  Issue type    | description                                                        |
-|  ---           | ---                                                                |
-| **Bug**        | 损坏数据的bug.                               |
+|  Issue type    | description                                        |
+|  ---           | ---                                                |
+| **Bug**        | 损坏数据的bug.                                     |
 | **Trap**       | 不是bug, 但容易被误解, 容易实现错误的概念, 流程等. |
-| **Suboptimal** | 现有paper中可改进的地方.                    |
-| **Optimize**   | 对现有设计的改进 |
+| **Suboptimal** | 现有paper中可改进的地方.                           |
+| **Optimize**   | 对现有设计的改进                                   |
+| **Generalize** | 对现有设计的扩展                                   |
 
 ## Issues
 
@@ -24,5 +25,7 @@
 ---
 
 ![](cn-list/asymmetric-paxos.md)
+
+![](cn-list/paxos-revert-rnd.md)
 
 ---
