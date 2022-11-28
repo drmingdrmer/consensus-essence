@@ -11,7 +11,7 @@ Proposer 生产一个**整数** n 来作为 `rnd`.
 例如选择 **整除** 的偏序关系实现 Paxos, 定义 `rnd` 为正整数,
 大小关系定义: **为如果 a 整除 b, 那么 a 才小于 b**:
 这时有: `1 < 2 < 6`, `1 < 3 < 6`, 但是 `2 ≮ 3`.
-如下例子中, Proposer P2 完成 phase-1 后, P3 在无法完成 phase-1, 因为Acceptor A2 上 `3 ≯ 2`, 于是放弃 P3, 使用 P6 完成 phase-1, 进而再完成 phase-2, 完成一次commit.
+如下例子中, Proposer P2 完成 phase-1 后, P3 无法完成 phase-1, 因为 Acceptor A2 上 `3 ≯ 2`, 于是放弃 P3, 使用 P6 完成 phase-1, 进而再完成 phase-2, 完成一次commit.
 
 
 ![](../list/paxos-partial-order-rnd.jpeg)
