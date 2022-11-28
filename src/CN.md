@@ -28,4 +28,6 @@
 
 ![](cn-list/paxos-revert-rnd.md)
 
+![](cn-list/paxos-partial-order-rnd.md)
+
 ---
