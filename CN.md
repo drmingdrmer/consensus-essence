@@ -162,7 +162,7 @@ Proposer 生产一个**整数** n 来作为 `rnd`.
 例如选择 **整除** 的偏序关系实现 Paxos, 定义 `rnd` 为正整数,
 大小关系定义: **为如果 a 整除 b, 那么 a 才小于 b**:
 这时有: `1 < 2 < 6`, `1 < 3 < 6`, 但是 `2 ≮ 3`.
-如下例子中, Proposer P2 完成 phase-1 后, P3 在无法完成 phase-1, 因为Acceptor A2 上 `3 ≯ 2`, 于是放弃 P3, 使用 P6 完成 phase-1, 进而再完成 phase-2, 完成一次commit.
+如下例子中, Proposer P2 完成 phase-1 后, P3 无法完成 phase-1, 因为 Acceptor A2 上 `3 ≯ 2`, 于是放弃 P3, 使用 P6 完成 phase-1, 进而再完成 phase-2, 完成一次commit.
 
 ![](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@main-asset/CN/1edffee04dce1de6-paxos-partial-order-rnd.jpeg)
 
@@ -176,6 +176,8 @@ Proposer 生产一个**整数** n 来作为 `rnd`.
 而组内多个 Proposer 之间又可以形成高可用的互备(不存在 2PC 中 Coordinator 宕机的问题).
 
 所以, **偏序 Paxos 可以提供 2PC 的事务互斥性, 也提供了 Paxos 的故障容忍, 可以将分布式DB(例如spanner) 中的 2PC + Paxos 的两层架构简化成一层**.
+
+![](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@main-asset/CN/3332869ed261c6d8-qrcode-hori-margin.jpg)
 
 ---
 
