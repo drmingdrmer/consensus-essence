@@ -26,3 +26,5 @@ Proposer 生产一个**整数** n 来作为 `rnd`.
 而组内多个 Proposer 之间又可以形成高可用的互备(不存在 2PC 中 Coordinator 宕机的问题).
 
 所以, **偏序 Paxos 可以提供 2PC 的事务互斥性, 也提供了 Paxos 的故障容忍, 可以将分布式DB(例如spanner) 中的 2PC + Paxos 的两层架构简化成一层**.
+
+![](../assets/qrcode-hori-margin.jpg)
