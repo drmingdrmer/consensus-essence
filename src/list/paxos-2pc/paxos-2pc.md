@@ -2,11 +2,14 @@
 
 # 统一 paxos 和 2pc
 
-classic paxos 和 2pc 有很多相似之处, 最多只能提交1个值, 且都有2个阶段.
-实际上他们2个几乎是完全一样的算法, 可以看成abstract-paxos 的一个特例.
-本文用一套协议重新实现分布式协议, 并用它实现paxos,
-2pc和另一个融合的paxos和2pc的一致性协议, 解决2pc中coordinator失效问题,
-用于替代分布式db中常见的2pc over paxos的设计.
+分布式一致性是关于**时间**的
+
+引用 paxos 文章链接
+
+Classic Paxos 和 2PC 有很多相似之处，例如最多只能提交 1 个值，且都有 2 个阶段。实际上，它们两个几乎是完全相同的算法，可以看作是 Abstract Paxos 的一个特例。本文使用一套协议重新实现分布式协议，并用它来分别实现 Paxos、2PC 和另一个融合了 Paxos 和 2PC 的一致性协议，以解决 2PC 中协调者失效的问题，并用于替代分布式数据库中常见的 2PC over Paxos 的设计。
+
+
+# 概念
 
 P: Proposer<br/>
 A: Acceptor<br/>
@@ -14,7 +17,7 @@ q: quorum: 一个acceptor的集合 ${A_i, A_j, ...}$<br/>
 time: 对应 paxos 的 ballot number
 
 
-n 个 Acceptor 共存储 n 个值 $v_1, v_2, ... v_n$, 他们可以不同. 也就是说Acceptor不是对称的.
+n 个 Acceptor 共存储 n 个值 $v_1, v_2, ... v_n$, 他们可以不同. 也就是说Acceptor 是非对称的.
 所有 v 构成这个存储系统存储的状态 S,
 
 $$
@@ -33,13 +36,13 @@ $$
 ## Quorum
 
 Quorum 要求任意2个 quorum 的交集都可以用于恢复 S 的完整状态:
-$q_i \cap q_j \in r(S)$
+$q_i \cap q_j \in R(S)$
 
 # 这些概念在具体一致性算法中的例子
 
 ### paxos 例子
 
-例如 classic-paxos 中, 值是以副本的方式存储的, 例如三副本的 paxos 里 `S = [6,6,6]`; `R(S)` 是 Acceptor 集合的任意非空子集:
+例如 classic-paxos 中, 值(v)是以副本的方式存储的, 例如三副本的 paxos 里 `S = [6,6,6]`; `R(S)` 是 Acceptor 集合的任意非空子集:
 即只需联系到任一Acceptor就可以读出已写入的值:
 
 ```
@@ -74,7 +77,7 @@ $$
 
 ### 2pc
 
-2pc 中, R(S) 只有一个元素就是全体节点的集合: `R(S) = {{A1, A2...An}}`
+2pc 中, R(S) 只有一个元素就是全体节点的集合: `R(S) = {{v1, v2...vn}}`
 因为假设每个节点上的数据都不一样且没有关联. 要恢复 S, 必须直接取得所有
 Acceptor上的v.
 
@@ -85,6 +88,9 @@ Acceptor上的v.
 # 实现
 
 ### 数据结构
+
+Abstract paxos 的组成部分有Proposer 和 Acceptor,
+Acceptor负责存储v_i, Proposer 负责发起一次变更.
 
 ```rust
 // Time resembles ballot num or round number in paxos
@@ -108,6 +114,10 @@ struct Acceptor<Time, V> {
 ## Protocol
 
 ### Phase-1
+
+TODO: 图
+
+第一阶段, 新建一个P, 初始化一个Time, 并试图在一个quorum中的每个Acceptor上将当前Time设置到Time, 这个过程中Acceptor只允许Time变大.
 
 P:
 
@@ -162,13 +172,18 @@ struct Phase2Req {
 
 A:
 
+同样, 保持时间不回退的原则:
 如果 `p2req.time >= A.time`, 则接受这个值:
 
 ```rust
 fn handle_p2req(A: Acceptor, p2req: Phase2Req) {
-    A.time   = p2req.time
-    A.v_time = p2req.time
-    A.v      = p2req.v
+    if p2req.time >= A.time {
+        A.time   = p2req.time
+        A.v_time = p2req.time
+        A.v      = p2req.v
+        return true;
+    }
+    return false;
 }
 ```
 
@@ -264,8 +279,7 @@ impl PartialOrd for TwoPCTime {
 impl AbstractPaxos for TwoPC {
     type Time = TwoPCTime;
     fn rebuild(acceptor: Vec<Option<Acceptors>>) -> Vec<Option<V>> {
-        // find vᵢ with the max v_time
-        acceptors.iter().map(|opt| opt.map(|a| a.v))
+        unreachable!("2pc does not need to rebuild from previous state");
     }
     fn is_quorum(acceptor_ids: &[NodeId]) -> bool {
         acceptor_ids.len() == self.all_nodes.len()
@@ -275,99 +289,3 @@ impl AbstractPaxos for TwoPC {
 
 ![](./2pc.excalidraw.png)
 
-# 实现 paxos+2pc
-
-既然可以将 abstract-paxos 以不同的方式约束程 paxos 或 2pc,
-如果放开这些限制, 它就可以同时提供paxos和2pc的功能. 类似spanner种的2pc over paxos 的架构, paxos 负责故障冗余, 2pc 负责事务性.
-
-如果有 abstract-paxos, 可以以一个协议完成这两个功能.
-
-## Time
-
-time 定义为:
-```rust
-struct AbsTime {
-    tx: (Txid, s), // s in [1,2]
-    i: int,
-}
-```
-
-这里tx表示事务相关的信息, 它表示在Txid的这个维度上有2个状态: locked(s=2),
-和unlocked(s=1). i 仍然是一个递增id.
-
-### time 大小关系
-
-我们允许同一个事务中执行类似paxos的操作, 所以如果AbsTime.tx.Txid相同,
-则直接比较i来确定 time 的大小关系.
-如果AbsTime.tx.Txid不同, 则只允许另一个time的tx为unlocked状态才定义为大于等于.
-
-```rust
-fn greater_equal(a: AbsTime, b: AbsTime) {
-    if a.tx.Txid == b.tx.Txid {
-        a.i >= b.i
-    } else {
-        if b.tx.s == 1 { // unlocked
-            a.i >= b.i
-        } else {
-            false
-        }
-    }
-}
-```
-
-$$
-r_b \ge r_a \iff |t_b| \ge |t_a \times t_b| \land i_b \ge i_a
-$$
-
-
-TODO: two vaule x and y may have different `v_time`
-
-
-#### Acceptor
-
-Acceptor 按照分组冗余, 例如: A1,A2,A3 存储变量x, A4,A5,A6 存储变量y
-那么r(S) 的要求是包含每组至少一个Acceptor. quorum 是2组Acceptor的joint quorum
-
-
-
-例如 P1 执行tx1,更新x=1 y=3, P2 执行tx2,要更新 x=2,y=4
-
-这两个事务:
-
-t1时刻, P2 在A5,A6上完成phase-1, P1 在A1,A2,A4上完成phase-1, 但在A5上因为有[tx2,2]所以phase-1失败.
-当然P2这时也已经不能完成phase-1了.
-
-这时P1决定放弃执行等P2完成, 于是在t2时刻, 使用P3将
-
-- Acceptor 有5个: 存储x的3个副本, 存储y和z的各一个副本.
-
-- P1 执行 tx1, set x = 5, y = 6
-    对P1, R(S) 为 3个x副本的任意一个, y
-    quorum 为 x副本中至少2个和y
-
-- P2 执行 tx2, set y = 8, z = 9
-    对P2, R(S) 为 y 和 z
-    quorum 为 y 和 z
-
-- P1 执行 phase-1 成功.
-
-- P2 执行 phase-1 在y上由于冲突失败,  在z上成功.
-
-- P1 crash
-- P3 接替, 用更大的time={tx:(a, 2), i=2 } 在 x2 x3 和 y 上完成phase-1
-- P3 完成phase-2 此时提交成功, 在phase-2阶段可以直接用更大的time完成解锁的工作.
-- P2 提升time={tx:(b, 2), i=4} 完成新一轮的phase-1,
-- P2 完成phase-2
-- 2个事务先后完成
-
-![](./abs.excalidraw.png)
-
-
-# 其他
-
-这里事务可能提交一半, 例如上面的P3 只在y上完成了phase-2.
-这时P2如果看到半提交的y的值, 它可以选择使用这个值
-基础上继续完成自己的事务.
-
-如果要求事务提交的原子, 例如对于tx-a, x和y的值最终必须都提交完成或都失败,
-那么就要求phase-2时, S中的每个v都带有其他v要提交的信息, 这样
