@@ -54,7 +54,7 @@
 
 在 [classic Paxos](http://lamport.azurewebsites.net/pubs/pubs.html#paxos-simple) 中, acceptors 是**对等**的 :
 
-![classic](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@main-asset/CN/8f2689f1e7dba5f9-asymmetric-paxos-classic.jpeg)
+![classic](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@2pcpaxos-asset/CN/8f2689f1e7dba5f9-asymmetric-paxos-classic.jpeg)
 
 -   一个 proposer(quorum是: $q_i$) 将 $x$ 的值存储到 acceptor 上(至少2个 acceptor 上以完成对 $x$ 的提交).
 
@@ -77,7 +77,7 @@
 
 因为我们可以从一个线性方程组 $ax+by=d_1, cx+dy=d_2$ 解得 $x, y$ 的值, 所以可以利用这个特性, 让 paxos 中的 acceptor 上存储不同的值(asymmetric), 来实现数据冗余的降低.
 
-![ec](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@main-asset/CN/0bb845a2df1a5134-asymmetric-paxos-ec.jpeg)
+![ec](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@2pcpaxos-asset/CN/0bb845a2df1a5134-asymmetric-paxos-ec.jpeg)
 
 -   一个 proposer(quorum是: $q_i$) 将 $x, y, x+y, x-y$ 存储到 acceptor 1 到 4 上(至少成功3个, 以完成对 $x, y$ 的提交).
 
@@ -100,7 +100,7 @@
 
 一个5节点的非对称 paxos 集群中, 可以存储3个相互独立的值 $x, y, z$:
 
-![ec53](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@main-asset/CN/586e20c6dfc9460f-asymmetric-paxos-ec-53.jpeg)
+![ec53](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@2pcpaxos-asset/CN/586e20c6dfc9460f-asymmetric-paxos-ec-53.jpeg)
 
 一个 proposer 将 $x, y, z, x+y+z, x+2y+4z$ 5个值存储到 acceptor 1 到 5 上.
 为了重新读到这 3 个值, 必须保证: $|q_i \cap q_j| \ge 3$.
@@ -118,7 +118,7 @@
 
 这个算法只能应用于 paxos, 因为 [raft](https://raft.github.io/) 的 leader 只从本地一个副本重建committed的数据, 而这个算法需要2个或更多节点的数据.
 
-![chart](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@main-asset/CN/781c336bed9bc848-asymmetric-paxos-chart.jpeg)
+![chart](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@2pcpaxos-asset/CN/781c336bed9bc848-asymmetric-paxos-chart.jpeg)
 
 ## Paxos/Raft: (Generalize): 允许未发生事件的时间回退
 
@@ -134,7 +134,7 @@ A1 ✅ 允许 P3: `1 ← 3`
 
 A2 ✅ 允许 P3: `2 ← 3`, ✅ 然后允许 P2: `1 ← 2`; ❌ 但是不允许: `1 ← 3`.
 
-![](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@main-asset/CN/37058a8e8375f3cf-paxos-revert-rnd-margin.jpeg)
+![](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@2pcpaxos-asset/CN/37058a8e8375f3cf-paxos-revert-rnd-margin.jpeg)
 
 Revert 可以应用到 Paxos(将 acceptor 的 `last_rnd` 回退到上一个值), 也可以应用到 raft(将 `(term, voted_for)` 回退到上一个值).
 💡 Tip: Paxos 的 `last_rnd` 等同于 raft 的 `(term, voted_for)`, 分别用于定义这2个系统中的虚拟 **时间**, 而 Paxos 中 `phase-2` 和 raft 中的 `append` 日志, 可以看做在某个 **时间点** 上产生一个 **事件**.
@@ -147,7 +147,7 @@ N1 必须退出 Leader 到 Candidate 重新用更大的 term(至少是3) 来选�
 
 如果使用 revert, N3 可以在 election 失败后, 优雅的将 term 回退, 从而不会打断整个集群的 Leader.
 
-![](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@main-asset/CN/2c6d7d468a0ecc49-paxos-revert-rnd-raft-margin.jpeg)
+![](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@2pcpaxos-asset/CN/2c6d7d468a0ecc49-paxos-revert-rnd-raft-margin.jpeg)
 
 ## Paxos: (Generalize): Partial Order Round Number = Paxos + 2PC
 
@@ -164,7 +164,7 @@ Proposer 生产一个**整数** n 来作为 `rnd`.
 这时有: `1 < 2 < 6`, `1 < 3 < 6`, 但是 `2 ≮ 3`.
 如下例子中, Proposer P2 完成 phase-1 后, P3 无法完成 phase-1, 因为 Acceptor A2 上 `3 ≯ 2`, 于是放弃 P3, 使用 P6 完成 phase-1, 进而再完成 phase-2, 完成一次commit.
 
-![](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@main-asset/CN/1edffee04dce1de6-paxos-partial-order-rnd.jpeg)
+![](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@2pcpaxos-asset/CN/1edffee04dce1de6-paxos-partial-order-rnd.jpeg)
 
 **在应用上**, 偏序的 `rnd` 给 Paxos 等一致性算法提供了非常大的扩展空间,
 它将一维的先后关系扩展到多维度的先后关系(类似多维的时间).
@@ -177,7 +177,7 @@ Proposer 生产一个**整数** n 来作为 `rnd`.
 
 所以, **偏序 Paxos 可以提供 2PC 的事务互斥性, 也提供了 Paxos 的故障容忍, 可以将分布式DB(例如spanner) 中的 2PC + Paxos 的两层架构简化成一层**.
 
-![](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@main-asset/CN/3332869ed261c6d8-qrcode-hori-margin.jpg)
+![](https://cdn.jsdelivr.net/gh/drmingdrmer/consensus-essence@2pcpaxos-asset/CN/3332869ed261c6d8-qrcode-hori-margin.jpg)
 
 ---
 
