@@ -23,7 +23,7 @@ would never become the leader. Thanks to [Gao Xinge](https://www.zhihu.com/peopl
 
 ![](raft-leader-step-down-optimize.jpeg)
 
-#### Improvement
+### Improvement
 
 When a leader commits $C_{new}$, it does **NOT** give up leadership, but just
 keep serving as leader.
