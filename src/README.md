@@ -33,6 +33,8 @@ This repo is a list of distributed consensus protocol's bugs, flaws, deceptive t
 
 ![](list/raft-leader-step-down.md)
 
+![](list/raft-read-index/raft-read-index.md)
+
 ---
 
 **Contribution**
