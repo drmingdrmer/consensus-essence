@@ -12,7 +12,7 @@ A1 ✅ 允许 P3: `1 ← 3`
 
 A2 ✅ 允许 P3: `2 ← 3`, ✅ 然后允许 P2: `1 ← 2`; ❌ 但是不允许: `1 ← 3`.
 
-![](../list/paxos-revert-rnd-margin.jpeg)
+![](paxos-revert-rnd-margin.jpeg)
 
 
 Revert 可以应用到 Paxos(将 acceptor 的 `last_rnd` 回退到上一个值), 也可以应用到 raft(将 `(term, voted_for)` 回退到上一个值).
@@ -26,4 +26,4 @@ N1 必须退出 Leader 到 Candidate 重新用更大的 term(至少是3) 来选�
 
 如果使用 revert, N3 可以在 election 失败后, 优雅的将 term 回退, 从而不会打断整个集群的 Leader.
 
-![](../list/paxos-revert-rnd-raft-margin.jpeg)
+![](paxos-revert-rnd-raft-margin.jpeg)
