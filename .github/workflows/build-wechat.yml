@@ -1,4 +1,4 @@
-name: build README.md
+name: Disabled build wechat
 on:
   push:
     branches:

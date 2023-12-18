@@ -1,4 +1,4 @@
-name: build README.md
+name: Link check
 on: [push]
 jobs:
 
