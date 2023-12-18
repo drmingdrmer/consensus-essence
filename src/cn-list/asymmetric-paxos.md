@@ -76,7 +76,7 @@
 
 ### Summary
 
-利用 [asymmetric paxos](https://github.com/drmingdrmer/consensus-bugs/blob/main/CN.md#paxos-optimize-asymmetric-acceptors), 稍微降低数据的可靠性, 可以有效降低数据的冗余.
+利用 [asymmetric paxos](https://github.com/drmingdrmer/consensus-essence/blob/main/src/list/asymmetric-paxos.md), 稍微降低数据的可靠性, 可以有效降低数据的冗余.
 
 这个算法只能应用于 paxos, 因为 [raft](https://raft.github.io/) 的 leader 只从本地一个副本重建committed的数据, 而这个算法需要2个或更多节点的数据.
 
