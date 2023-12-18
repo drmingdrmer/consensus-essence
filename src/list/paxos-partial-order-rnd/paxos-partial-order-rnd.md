@@ -1,28 +1,20 @@
-## Paxos: (Generalization): Partial Order Round Number = Paxos + 2PC
+## Paxos: (Generalize): Partial Order Round Number = Paxos + 2PC
 
-[Paxos](https://en.wikipedia.org/wiki/Paxos_(computer_science)) phase-1 requires a Proposer to produce an **integer** n to serve as `rnd`.
-In fact, the definition of `rnd` can be generalized from an integer to any value of a [partially ordered set](https://en.wikipedia.org/wiki/Partially_ordered_set), and it can still satisfy the correctness of Paxos because the main use in Paxos is the property of the **size relationship** of `rnd`.
+[Paxos](https://en.wikipedia.org/wiki/Paxos_(computer_science)) is a protocol where, during phase-1, a Proposer must generate an integer value `n` as the `rnd` number. However, this definition can be expanded beyond integers. By using any value from a [partially ordered set](https://en.wikipedia.org/wiki/Partially_ordered_set), the essential ordering property of `rnd` in Paxos is still preserved, which is critical for the protocol's correctness.
 
-Using a partially ordered `rnd` in Paxos,
-one can choose either **mandatory** conflict exclusion (similar to [2PC](https://en.wikipedia.org/wiki/Two-phase_commit_protocol))
-or **non-mandatory** conflict exclusion (similar to Paxos's livelock) to implement the safety requirements of the consensus protocol.
+In a generalized Paxos, the `rnd` can employ a partial order, allowing for a choice between **mandatory** conflict exclusion, akin to the [Two-Phase Commit Protocol (2PC)](https://en.wikipedia.org/wiki/Two-phase_commit_protocol), and **non-mandatory** conflict exclusion, reminiscent of the potential for livelock in Paxos, to uphold the safety of the consensus process.
 
-For example, choosing the **divisibility** partial order relationship to implement Paxos, define `rnd` as a positive integer,
-size relationship definition: **if a divides b, then a is less than b**:
-in this case, we have: `1 < 2 < 6`, `1 < 3 < 6`, but `2 ≮ 3`.
-In the following example, after Proposer P2 completes phase-1, P3 cannot complete phase-1 because on Acceptor A2, `3 ≯ 2`, thus abandoning P3, using P6 to complete phase-1, and then completing phase-2 to achieve a commit.
+Consider the **divisibility** as a partial ordering criterion in Paxos, where `rnd` is a positive integer, and the order is determined by divisibility: **if a divides b, then a is less than b**. For example, we have `1 < 2 < 6`, and `1 < 3 < 6`, but `2` is not comparable to `3`. In a scenario where Proposer P2 has finished phase-1, P3 cannot proceed because `3 ≯ 2` on Acceptor A2. Therefore, P3 quits and P6 can initiate phase-1 and proceed to phase-2, ultimately commit a value.
 
 ![](paxos-partial-order-rnd.jpeg)
 
-**In application**, the partial order `rnd` provides a very large extension space for consistency algorithms like Paxos,
-it extends the one-dimensional sequence relationship to a multi-dimensional sequence relationship (similar to multi-dimensional time).
+In practical applications, the concept of a partial order `rnd` greatly expands the possibilities for consistency algorithms like Paxos by introducing multi-dimensional ordering, which can be thought of as an analogy to multi-dimensional time.
 
-For instance, in a storage system, one could set up 2 groups of `rnd`:
+For instance, in a distributed storage system, one could establish two separate `rnd` groups:
 
-- One group of Proposers only chooses 2ⁿ as `rnd`, intending to execute transaction A;
-- Another group of Proposers only chooses 3ⁿ as `rnd`, intending to execute transaction B;
+- One group of Proposers might use powers of 2 for `rnd`, targeting transaction A;
+- The other group may use powers of 3 for `rnd`, targeting transaction B.
 
-Thus, these two groups of Proposers are mutually exclusive, ensuring that at most one transaction is successful (avoiding the livelock in Paxos).
-Meanwhile, multiple Proposers within a group can form a highly available backup (without the problem of the Coordinator crashing in 2PC).
+These two groups operate independently, ensuring that only one transaction can be committed at a time, thus avoiding Paxos’s livelock issues. Additionally, multiple Proposers within the same group can provide redundancy and high availability, without the single point of failure risk inherent in 2PC's Coordinator.
 
-Therefore, **partial order Paxos can provide the transaction exclusivity of 2PC, as well as the fault tolerance of Paxos, and can simplify the two-layer architecture of 2PC + Paxos in distributed DBs (such as Spanner) to a single layer**.
+In conclusion, **partial order Paxos cleverly combines the transaction exclusivity of 2PC with the robustness of Paxos. This fusion simplifies the complex two-layer framework found in distributed databases, such as Spanner, into a more streamlined single-layer architecture**.
