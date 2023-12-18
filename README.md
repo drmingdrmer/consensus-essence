@@ -17,7 +17,7 @@ This repo is a list of distributed consensus protocol's bugs, flaws, deceptive t
 - [Paxos: (Optimize): Asymmetric Acceptors](src/list/asymmetric-paxos/asymmetric-paxos.md) | 🌎 [中文版](src/list/asymmetric-paxos/asymmetric-paxos.cn.md)
 - Paxos/Raft: (Generalize): 允许未发生事件的时间回退 | 🌎 [中文版](src/cn-list/paxos-revert-rnd.md)
 - Paxos: (Generalize): Partial Order Round Number = Paxos + 2PC | 🌎 [中文版](src/cn-list/paxos-partial-order-rnd.md)
-- [Raft: (Suboptimal): Leader Step Down](src/list/raft-leader-step-down.md)
+- [Raft: (Suboptimal): Leader Step Down](src/list/raft-leader-step-down/raft-leader-step-down.md)
 - [Raft: (Optimize): ReadIndex: Less Wait](src/list/raft-read-index/raft-read-index.md) | 🌎 [中文版](src/list/raft-read-index/raft-read-index.cn.md)
 
 

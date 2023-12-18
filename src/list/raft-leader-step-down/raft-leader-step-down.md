@@ -6,7 +6,7 @@
 > The second issue is that the cluster leader may not be part of the new configuration.
 > In this case, the leader steps down (returns to follower state) once it has committed the $C_{new}$ log entry.
 >
-> ![](./raft-leader-step-down-std.jpeg)
+> ![](raft-leader-step-down-std.jpeg)
 
 But the leader does **NOT** have to give up leadership:
 
@@ -21,7 +21,7 @@ become a candidate) as long as it wants. This non-voting leader:
 Because raft ensures that a candidate using the second-to-last committed config
 would never become the leader. Thanks to [Gao Xinge](https://www.zhihu.com/people/gao-xinge).
 
-![](./raft-leader-step-down-optimize.jpeg)
+![](raft-leader-step-down-optimize.jpeg)
 
 #### Improvement
 
