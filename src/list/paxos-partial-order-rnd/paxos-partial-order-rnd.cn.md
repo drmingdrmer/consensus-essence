@@ -20,8 +20,10 @@ Proposer 生产一个**整数** n 来作为 `rnd`.
 它将一维的先后关系扩展到多维度的先后关系(类似多维的时间).
 
 例如对一个存储系统可以设置 2 组 `rnd`:
-一组 Proposer 只选择 2ⁿ 的 `rnd`, 希望执行事务A;
-一组 Proposer 只选择 3ⁿ 的 `rnd`, 希望执行事务B;
+
+- 一组 Proposer 只选择 2ⁿ 的 `rnd`, 希望执行事务A;
+- 一组 Proposer 只选择 3ⁿ 的 `rnd`, 希望执行事务B;
+
 于是这两组 Proposer 之间互斥, 保证了最多只有一个事务成功(不会产生 Paxos 中的活锁).
 而组内多个 Proposer 之间又可以形成高可用的互备(不存在 2PC 中 Coordinator 宕机的问题).
 
