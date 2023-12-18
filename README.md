@@ -13,7 +13,7 @@ This repo is a list of distributed consensus protocol's bugs, flaws, deceptive t
 
 ## Issues
 
-- [Paxos: (Trap): The Bug in Paxos Made Simple](src/list/classic-paxos-forget-decided-value.md)
+- [Paxos: (Trap): The Bug in Paxos Made Simple](src/list/classic-paxos-forget-decided-value/classic-paxos-forget-decided-value.md)
 - [Paxos: (Optimize): Asymmetric Acceptors](src/list/asymmetric-paxos.md) | 🌎 [中文版](src/cn-list/asymmetric-paxos.md)
 - Paxos/Raft: (Generalize): 允许未发生事件的时间回退 | 🌎 [中文版](src/cn-list/paxos-revert-rnd.md)
 - Paxos: (Generalize): Partial Order Round Number = Paxos + 2PC | 🌎 [中文版](src/cn-list/paxos-partial-order-rnd.md)
