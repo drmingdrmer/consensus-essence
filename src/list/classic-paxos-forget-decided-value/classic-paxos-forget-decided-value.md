@@ -5,7 +5,7 @@ This is not a bug but people tend to interpret it in the wrong way.
 #### The issue:
 
 ```
-1. P1 sends 'prepare 1' to AB
+1.  P1 sends 'prepare 1' to AB
 2.  Both AB respond P1 with a promise to not to accept any request numbered smaller than 1.\
     Now the status is: A(-:-,1) B(-:-,1) C(-:-,-)
 3.  P1 receives the responses, then gets stuck and runs very slowly
