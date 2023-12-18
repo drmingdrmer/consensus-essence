@@ -6,4 +6,4 @@ link-check:
 	# Dep:
 	#   npm install -g markdown-link-check
 	#   https://github.com/tcort/markdown-link-check
-	find . -name \*.md -print0 | xargs -0 -n1 markdown-link-check
+	find . -name \*.md -print0 | xargs -0 -n1 markdown-link-check --alive 200,301,302

@@ -47,7 +47,7 @@ It is obviously correct because it simply combines requirements of **case-lt** a
 
 [Openraft][] implements this optimization: A brief proof can be found in: [Openraft linearizable read][read].
 
-For Openraft application, it simply calls and blocks until [`Raft::ensure_linearizable()`][] returns, and the proceed reading process.
+For Openraft application, it simply calls and blocks until [`Raft::ensure_linearizable()`][ensure_linearizable] returns, and the proceed reading process.
 For example, [kv-store][] implemnts linearizable read with the following snippet:
 
 ```rust
@@ -107,3 +107,4 @@ The key to optimization is to simplify logic, not necessarily to reduce code (in
 [etcd-raft-read-index]:  https://github.com/etcd-io/raft/blob/4fcf99f38c20868477e01f5f5c68ef1e4377a8b1/raft.go#L2063-L2098
 [kv-store]:  https://github.com/datafuselabs/openraft/blob/79372b4dff4312f5eb344db76d5ed1dffe69fac7/examples/raft-kv-memstore/src/network/api.rs#L42
 [read]:  https://github.com/datafuselabs/openraft/blob/79372b4dff4312f5eb344db76d5ed1dffe69fac7/openraft/src/docs/protocol/read.md
+[ensure_linearizable]: https://github.com/datafuselabs/openraft/blob/79372b4dff4312f5eb344db76d5ed1dffe69fac7/openraft/src/raft/mod.rs#L398
