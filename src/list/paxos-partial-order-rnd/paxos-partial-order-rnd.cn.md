@@ -14,7 +14,7 @@ Proposer 生产一个**整数** n 来作为 `rnd`.
 如下例子中, Proposer P2 完成 phase-1 后, P3 无法完成 phase-1, 因为 Acceptor A2 上 `3 ≯ 2`, 于是放弃 P3, 使用 P6 完成 phase-1, 进而再完成 phase-2, 完成一次commit.
 
 
-![](../list/paxos-partial-order-rnd.jpeg)
+![](paxos-partial-order-rnd.jpeg)
 
 **在应用上**, 偏序的 `rnd` 给 Paxos 等一致性算法提供了非常大的扩展空间,
 它将一维的先后关系扩展到多维度的先后关系(类似多维的时间).
@@ -26,5 +26,3 @@ Proposer 生产一个**整数** n 来作为 `rnd`.
 而组内多个 Proposer 之间又可以形成高可用的互备(不存在 2PC 中 Coordinator 宕机的问题).
 
 所以, **偏序 Paxos 可以提供 2PC 的事务互斥性, 也提供了 Paxos 的故障容忍, 可以将分布式DB(例如spanner) 中的 2PC + Paxos 的两层架构简化成一层**.
-
-![](../assets/qrcode-hori-margin.jpg)
