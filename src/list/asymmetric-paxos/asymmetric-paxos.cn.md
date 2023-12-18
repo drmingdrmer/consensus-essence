@@ -6,7 +6,7 @@
 
 在 [classic Paxos](http://lamport.azurewebsites.net/pubs/pubs.html#paxos-simple) 中, acceptors 是**对等**的 :
 
-![classic](../list/asymmetric-paxos-classic.jpeg)
+![classic](asymmetric-paxos-classic.jpeg)
 
 - 一个 proposer(quorum是: $q_i$) 将 $x$ 的值存储到 acceptor 上(至少2个 acceptor 上以完成对 $x$ 的提交).
 
@@ -34,7 +34,7 @@
 
 因为我们可以从一个线性方程组 $ax+by=d_1, cx+dy=d_2$ 解得 $x, y$ 的值, 所以可以利用这个特性, 让 paxos 中的 acceptor 上存储不同的值(asymmetric), 来实现数据冗余的降低.
 
-![ec](../list/asymmetric-paxos-ec.jpeg)
+![ec](asymmetric-paxos-ec.jpeg)
 
 - 一个 proposer(quorum是: $q_i$) 将 $x, y, x+y, x-y$ 存储到 acceptor 1 到 4 上(至少成功3个, 以完成对 $x, y$ 的提交).
 
@@ -62,7 +62,7 @@
 
 一个5节点的非对称 paxos 集群中, 可以存储3个相互独立的值 $x, y, z$:
 
-![ec53](../list/asymmetric-paxos-ec-53.jpeg)
+![ec53](asymmetric-paxos-ec-53.jpeg)
 
 一个 proposer 将 $x, y, z, x+y+z, x+2y+4z$ 5个值存储到 acceptor 1 到 5 上.
 为了重新读到这 3 个值, 必须保证: $|q_i \cap q_j| \ge 3$.
@@ -76,8 +76,8 @@
 
 ### Summary
 
-利用 [asymmetric paxos](https://github.com/drmingdrmer/consensus-essence/blob/main/src/list/asymmetric-paxos.md), 稍微降低数据的可靠性, 可以有效降低数据的冗余.
+利用 [asymmetric paxos](https://github.com/drmingdrmer/consensus-essence/blob/main/src/list/asymmetric-paxos/asymmetric-paxos.cn.md), 稍微降低数据的可靠性, 可以有效降低数据的冗余.
 
 这个算法只能应用于 paxos, 因为 [raft](https://raft.github.io/) 的 leader 只从本地一个副本重建committed的数据, 而这个算法需要2个或更多节点的数据.
 
-![chart](../list/asymmetric-paxos-chart.jpeg)
+![chart](asymmetric-paxos-chart.jpeg)

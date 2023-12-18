@@ -46,7 +46,7 @@ Redundancy is **140%**; Tolerates **1** failure; Availability is about ${ 5 \cho
 
 
 
-**Summary**: with asymmetric paxos, the avaiability decreases slightly while the data redundancy is reduced in [asymmetric Paxos](https://github.com/drmingdrmer/consensus-essence/blob/main/src/list/asymmetric-paxos.md).
+**Summary**: with asymmetric paxos, the avaiability decreases slightly while the data redundancy is reduced in [asymmetric Paxos](https://github.com/drmingdrmer/consensus-essence/blob/main/src/list/asymmetric-paxos/asymmetric-paxos.md).
 This algorithm applies to paxos and its variants but not to [raft](https://raft.github.io/).
 Because it requires more than one nodes to rebuild a committed value.
 
