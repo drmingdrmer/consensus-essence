@@ -5,6 +5,13 @@ on:
       - disabled
 jobs:
   md2zhihu:
+
+
+    # Disable building!
+    # All-in-one format results in a too big page!
+    if: ${{ false }}
+
+
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2

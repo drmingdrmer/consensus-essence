@@ -18,7 +18,7 @@ Such an implementation is popular, e.g., in [etcd-raft][etcd-raft-read-index].
 
 #### Proof of Linearizable Consistency
 
-![](raft-read.excalidraw.png)
+![](raft-read.excalidraw-margin.png)
 
 When a Leader node(at term `Term_1`) receives a read request labeled `read_1` at time `time_1`, it must ensure that `read_1` sees all data observed by any prior read `read_0` at `Term_0`, which took place at `time_0`.
 
