@@ -1,8 +1,8 @@
 ## Raft: (Optimize): Commit log via RequestVote RPC
 
 
-这个优化允许 Candidate 在一个 RRT 内完成选举和首次 commit;
-标准 Raft 中, 首次 commit 需要在 Election 阶段完成之后再复制一个 Noop log, 需要2个 RRT.
+这个优化允许 Candidate 在一个 RTT 内完成选举和首次 commit;
+标准 Raft 中, 首次 commit 需要在 Election 阶段完成之后再复制一个 Noop log, 需要2个 RTT.
 
 
 标准 Raft 的 Election 阶段不允许进行 log 复制:
