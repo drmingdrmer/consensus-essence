@@ -24,6 +24,8 @@ This repo is a list of distributed consensus protocol's bugs, flaws, deceptive t
   | 🌎 [中文版](src/list/paxos-partial-order-rnd/paxos-partial-order-rnd.cn.md)
 - [Raft: (Suboptimal): Leader Step Down](src/list/raft-leader-step-down/raft-leader-step-down.md)
   | 🌎 [中文版](src/list/raft-leader-step-down/raft-leader-step-down.cn.md)
+- [Raft: (Optimize): Commit log via RequestVote RPC](src/list/raft-election-append-entries/raft-election-append-entries.md)
+  | 🌎 [中文版](src/list/raft-election-append-entries/raft-election-append-entries.cn.md)
 - [Raft: (Optimize): ReadIndex: Less Wait](src/list/raft-read-index/raft-read-index.md)
   | 🌎 [中文版](src/list/raft-read-index/raft-read-index.cn.md)
 
