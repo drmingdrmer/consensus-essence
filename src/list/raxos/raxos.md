@@ -1,7 +1,10 @@
+TODO: remove concept History quorum
+
+
 # 历史; 时间; 时间定序.
 
-一个分布式一致性协议中, 可以看做是对一个系统的状态达成一致的协议,
-系统的状态(State), 可以等价的看做是一系列有序的, 对系统状态做出变更的**事件**(Event).
+一个分布式一致性协议, 可以看做是: 对一个系统的状态达成一致的协议,
+而系统的状态(State), 可以等价的看做是一系列有序的, 对系统状态做出变更的**事件**(Event).
 即任意一组有序事件唯一定义了一个系统的状态.
 我们把这组**事件**称作系统事件的**历史**(Event History, 或History).
 
@@ -23,10 +26,18 @@ State: DAG<Event>;
 E1: let x = 1;
 E2: let y = 2;
 E3: let x = x + y;
-那么系统的State就是 State = apply(History) = apply(E1, E2, E3) = { x = 3; y = 2; }
+那么系统的State就是 `State = apply(History) = apply(E1, E2, E3) = { x = 3; y = 2; }`
 
-现在我们有了一个系统State的描述方式, 接下来在分布式环境中把它实现为高可用的分布式State,
-也就是通过多个Event History的副本来实现高可用.
+即一个系统的状态都可以用一组日志(History) 和 应用日志(History) 的一个方法
+`apply` 来定义.
+
+我们有了一个系统State的描述方式, 接下来在分布式环境中把它实现高可用,
+即通过多个History的副本来实现高可用.
+
+如果History的定义是一个简单的线性的Event 的log 数组, 那么`apply()` 也是一个简单的实现,
+即逐个应用log.
+如果History是一个非线性的结构, 例如是DAG关系组织的Event的图,
+那么`apply()`就要包含更多的内容, 后面说
 
 <!-- `apply()` 方法可以认为是确定的, 因此我们可以后面都用History来表示系统的状态(State) -->
 
@@ -50,80 +61,129 @@ E3: let x = x + y;
    - Committed的定义我们后面详细讨论.
    -->
 
-在分布式系统中, 系统状态定义为每个节点上存储的History的副本的集合:
+我们先来看History部分.
+
+一个在分布式系统, 可以看作每个节点上存储的History的副本的集合:
 
 ```rust
-State: BTreeMap<NodeId, History>
+System: BTreeMap<NodeId, History>
 ```
 
-## History Quorum
+## History Read Set
 
-在分布式环境中, 一个读操作可以看做一个函数: `fn read(node_set: Vec<Node>) -> Vec<History>`.
-它从多个节点中读History副本, 并返回一个History的集合.
+在这个分布式环境中, 读操作可以看做这样一个函数: `fn read(node_set: Vec<Node>) -> Vec<History>`:
+它从多个节点`node_set`中读History副本, 并返回一个History的集合.
 
-对读到的History中的任意一个, 我们可以称这个`node_set` 是这个`Hisotry`的一个quorum. 表示这个`History` 可以通过这个`node_set`(quorum)读到.
+对读到的History中的任意一个, 我们可以称这个`node_set` 是这个`History`的一个 ReadSet. 表示这个`History` 可以通过这个`node_set`读到.
 
-对系统的某个特定的状态,
-Histroy的quorum定义为可以读到这个History的一个节点的集合.
+对系统的某个特定的状态, Histroy 的 ReadSet 定义为可以读到这个History的一个节点的集合.
+注意这里要强调 **系统的某个特定状态**, 因为当系统状态发生变化,
+例如新的数据写入更新等, 某个 node_set 可能就不再对读请求返回这个History了.
 
-例如, 在下面这个3节点的系统中, `History{E1,E2,E3}`的quorum是所有包括N1节点的节点集合:
+
+例如, 在下面,
+- `read({N1})` 返回一个单元素的Vec: `[History{E1, E2, E3}]`, 
+- `read({N1, N2})` 返回一个2元素的Vec: `[History{E1, E2, E3}, History{E1, #2}]`, 
+- `read({N3})` 返回空 `[ø]`.
+
+例如, 在下面这个3节点的系统中, `History{E1,E2,E3}`的ReadSet, 即能读到它的节点的集合, 有4个, 是所有包括N1节点的节点集合:
 
 `{N1}, {N1,N2}, {N1,N2,N3}, {N1,N3}`
-
-它有4个可以读到它的quorum.
 
 例如`read({N1})` 会返回`History{E1,E2,E3}`在结果里, 
 `read({N1,N3})` 也会返回`History{E1,E2,E3}`在结果里.
 
-但是`read({N3})` 不会返回`History{E1,E2,E3}`.
+但是`read({N3})` 不会返回`History{E1,E2,E3}`, 所以 `{N3}` 不是`History{E1,E2,E3}` 的一个 ReadSet
 
-而`History{E1,E2}`的quorum有5个, 除了`{N3}` 之外的所有非空节点集合都是它的quorum:
+而`History{E1,E2}`的ReadSet有5个, 除了`{N3}` 之外的所有非空节点集合都是它的 ReadSet:
 `{N1}, {N1,N2}, {N1,N2,N3}, {N1,N3}, {N2,N3}`,
 
 例如`read({N2,N3})` 会返回`History{E1,E2}`在结果里.
 
 
-![](history-quorum.excalidraw.png)
+![](history-read-set.excalidraw.png)
 
 
-## Node set for reading
+对于返回的结果, 我们也可以将Vec<History>里的元素做一个并集来简化表示,
+例如, 上图中, `read({N1, N2})` 可以看做返回了一个History: `History{E1, E2, E3}`
 
-每个系统都定义了`read()` 操作可用的node_set 有哪些:
+而在下图中, 我们可以认为`read({N1, N2})` 返回了一个树形的History:
+```
+ .->E4
+E1->E2->E3
+```
 
-- 例如单机系统, `read()` 可用的node_set就是唯一这个节点`{{N1}}`,
-    显然用一个空的`node_set`去读是不允许的.
+![](history-read-set-union.excalidraw.png)
 
-- 一个简单3节点系统中, 不做任何限制,
+
+## Read Quorum Set
+
+对每个系统, 不论是单机的还是分布式的,
+都显式的或隐含的定义了合法的 `read()` 可用的 `node_set` 有哪些:
+
+- 例如单机系统, `read()` 可用的 `node_set` 就是唯一这个节点`{{N1}}`,
+    显然用一个空的 `node_set` 去读是没意义的.
+
+- 一个简单3节点系统中, 如果不做任何限制,
     那么`read()`可用的`node_set`是所有非空节点集合: `{{N1}, {N2}, {N3}, {N1,N2}, {N2,N3}, {N1,N3}, {N1,N2,N3}}`
-    但注意这样一个系统中`read()`操作的结果是没有任何保证的.
+    但注意这样一个系统中`read()`得到的结果一般是没有任何高可用保证的.
 
-- 一个多数派读写的3节点系统中, 
+- 一个多数派读写的3节点系统中(n=3, w=2, r=2), 
     `read()`可用的`node_set`是至少包含2节点的集合: `{{N1,N2}, {N2,N3}, {N1,N3}, {N1,N2,N3}}`,
 
-如果一个read操作使用的`node_set`是这个系统定义的可用于读的`node_set`,
-那么认为这个read操作是合法的, 对于不合法的read操作,
-系统对读取的结果不能提供任何保证.
+如果一个read操作使用的 `node_set` 是这个系统定义的用于读的`node_set`,
+那么认为这个read操作是合法的, 系统只给合法的读操作提供保证, 
+对于不合法的read操作,
+系统对读取的结果不能提供任何保证(undefined behavior).
 
-这个合法的`node_set`的集合, 就是系统的`read_quorum_set`, `read_quorum_set`
-中的一个元素称之为一个`read_quorum`.
+**def-Read-Quorum-Set** **def-Read-Quorum**:
+这个合法的用于`read()`的`node_set`的集合, 就是系统的`read_quorum_set`,
+`read_quorum_set` 中的一个元素是一个节点集合, 称之为一个`read_quorum`.
+`read_quorum` 是一个节点集合`node_set`, `read_quorum_set` 是一个 节点集合的集合.
 
 例如 3节点的系统 的`read_quorum_set`是: `{{N1,N2}, {N2,N3}, {N1,N3}, {N1,N2,N3}}`,
-那么`read({N1})`, 系统就不能提供任何保证.
+因此 `read({N1})`, 系统就不对它返回的结果提供任何保证.
+
+![](quorum-majority-3.excalidraw.png)
 
 
-### Write quorum set
+### Write Quorum Set
 
-如果一个`node_set`的集合,
-其中每个node_set都跟给定的`read_quorum_set`中的一个`node_set`有交集,
-那么就称它是一个合法的`write_quorum_set`,
-即保证每次写入都能被读到.
+与`read_quorum_set` 对应的是 `write_quorum_set`:
+
+**def-Write-Quorum-Set** **def-Write-Quorum**:
+
+对一个节点集合(`node_set`)的集合 `{{Nᵢ, ...}, {Nⱼ, ...}, ...}`,
+如果其中每个 `node_set` 都跟给定的`read_quorum_set`中的一个`read_quorum`有交集,
+那么就称它是一个合法的`write_quorum_set`, 其中的每个元素是一个 `node_set`,
+称为一个`write_quorum`.
+
+一对 `read_quorum_set` 和 `write_quorum_set` 保证了: 每次写入都能被读到.
 
 
-## 单个 History的Commit状态
+## 对系统总是可见的 History
 
-对一个History, 如果它的quorum集合覆盖了所有的 `read_quorum`,
+对于处于某个状态的系统,
+对一个 History, 如果它的 `read_set` 集合覆盖了 `read_quorum_set`,
+即 `read_quorum_set ⊆ {read_setᵢ, ...}`
 那么它就总是能被一次合法的读操作读到,
-那么这个History就可以认为是在系统的某个状态时, 是Committed的.
+那么这个History就可以认为是在系统的某个状态时, 是 **总是可见** 的.
+
+注意 **总是可见** 是跟系统的状态和 `read_quorum_set` 的定义相关的,
+例如, 对 `History{E1, E2}`来说, 
+如果 `read_quorum_set` 是多数派读写的定义, 即 `{{N1,N2},{N1,N3},{N2,N3}}`,
+那么它 **总是可见** 的:
+
+![](history-visible-12.excalidraw.png)
+
+例如, 对 `History{E1, E2, E3}`来说, 
+如果 `read_quorum_set` 仍然是多数派读写的定义, 即 `{{N1,N2},{N1,N3},{N2,N3}}`,
+那么它不是 **总是可见** 的, 因为通过`{N2,N3}`读不到`History{E1,E2,E3}`,
+淡入过修改 `read_quorum_set` 为 `{{N1,N2},{N1,N3}}`, 那么即使系统状态不变,
+它也变成 **总是可见** 的了:
+
+![](history-visible-123.excalidraw.png)
+
 
 ### Commit 的定义
 
@@ -134,7 +194,7 @@ Histroy的quorum定义为可以读到这个History的一个节点的集合.
 
 
 
-注意这跟系统的状态State是有关的, 这个系统可能发生变化导致History不能被读到了,
+注意这跟系统的状态System是有关的, 这个系统可能发生变化导致History不能被读到了,
 那么这时就认为发生了数据丢失.
 例如, 一个3节点系统中, `read_quorum_set` 定义为
 `{{N1,N2}, {N2,N3}, {N1,N3}}`,
@@ -306,7 +366,7 @@ Committed的History分支, 必须是最大的.
 
 ![](history-dirty-write.excalidraw.png)
 
-## Write阻止更小的Hisotry被Commit
+## Write阻止更小的History被Commit
 
 所以Writer把History写到节点上前, 必须要求没有更小的History被Commit.
 所以假设Write要写的History的Time是T, 首先要发一个消息, 给一个`read_quorum`, 要求这个`read_quorum`里的节点都不接受小于T的write消息.
