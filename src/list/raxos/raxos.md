@@ -185,7 +185,7 @@ E1->E2->E3
 ![](history-visible-123.excalidraw.png)
 
 
-### Committed 的定义 和 数据丢失
+### Committed 和 数据丢失
 
 直观上来说, 一个写操作达成Committed的状态就是说它总是能被读到了,
 在单机上来说一个写操作只要完成就是Committed,
@@ -255,14 +255,23 @@ https://blog.openacid.com/distributed/raft-bug/#raft-%E5%8D%95%E6%AD%A5%E5%8F%98
 
 ## 多重宇宙里的分布式一致性
 
-如果允许History 是树状的或图样的(到目前为止我们都没有要求History是线性的),
+如果允许 History 是树状的或图样的(到目前为止我们都没有要求History是线性的),
 那么以上就是分布式高可用一致性算法的实现:
 
-向一个`write_quorum` 添加(不是替换)一个History 分支,
+向一个`write_quorum` 添加(不能是替换)一个History 分支,
 那么一定可以被一个`read_quorum` 读到, 那么这次写入就可以认为是Committed.
 
-例如: 加图
+说它是多重宇宙是说, History可以有多个分支, 所有的历史路径都存在, 都是现实存在的.
 
+因为任意2个图是可以取并集的, 也没有冲突, 读写都是自然是完整的,
+所以这里只需我们平时说的quorum-rw就可以实现可靠的分布式读写了,
+即只需保证读写的quorum有交集.
+
+到这里我们都没有提到时间的概念,
+在这个多重宇宙里虽然每个分支都是一系列有先后顺序的Event,
+但这个先后顺序还不足以称之为时间
+可以看出, 我们现在没有引入时间的概念,
+如果允许多重历史的存在, 那么就不存在时间的概念.
 
 因为History分支之间没有关联, 所以一个write操作可以读任意一个History,
 加入新的Event构造一个新的History, 再将其写入到一个`write_quorum`, 即完成Commit.
@@ -270,27 +279,63 @@ https://blog.openacid.com/distributed/raft-bug/#raft-%E5%8D%95%E6%AD%A5%E5%8F%98
 否则History是一个树.
 这里我们假设一个Event不会被多次加入到History里, 所以这个图是无环的.
 
+例如: 下图中, 假设系统的 quorum set 配置是多数派的read_quorum 和 write_quorum.
 
-可以看出, 我们现在没有引入时间的概念,
-如果允许多重历史的存在, 那么就不存在时间的概念.
+- 这个分布式系统的用户先通过一个read_quorum N1, N2, 读到2个History,
+    然后把它union成一个完整的带分支的History H₁
+- 2, 在读到的值上添加新的数据E5, E6, 其中E5和E2, E4有先后关系,
+    跟E3的先后关系任意.
+- 3, 将这个新的History H₂写回系统, 使用write_quorum N2, N3
 
-但是现在我们如果要求历史必须是线性的(即我们不能同时存在于多于一个历史时间线),
+![](multiverse-rw.excalidraw.png)
+
+
+构建这样一个支持多分支历史的储存系统非常简单,
+但是现实中, 多重历史的存储系统并不太好用,
+例如上面如果E2的内容是将变量x设置为3, E4的内容是将变量的x设置为4,
+那么对于这样一个历史, 我们的状态机应用所有log(Event)后, 没有明确定义x到底是多少.
+虽然遇事不决量子力学, 你可以说这时x的值是3, 4的叠加态,
+这样的设计在某些场景下也有应用的价值,
+但是大部分场景中我们(的产品经理)仍然需要状态机中每个变量的值都是确定的.
+
+现在我们如果要求历史必须是线性的(即我们的肉体不能同时存在于多于一个历史时间线,
+只能选择一个),
 这也是我们常识认知中的现实.
 那么就会引入时间的概念.
+
+
+接下来进入本文的第二部分
 
 
 
 ## 限制单一历史
 
 但是我们现在希望得到一个线性History,
-即至多只有一个无分支的History是Committed.
+对于write(), 我们只需保证不在读到的History增加非线性的分支,
+而对于read, 因为它返回的是多节点的并集, 所以仍然可能读到多分支的History.
 
-`read()` 现在返回一个DAG, 它是所有节点上读到的History的并集,
-它可能有多个末端端点, `read()` 函数必须只能选择其中一个作为读到的History的结果.
-而且对于一个Committed的History, 多个`read()` 总是选择它.
-例如(加图) 分支A和分支B同时被读到, 那么就总是选择A
-这说明每个History分支之间有一个二元关系, 也就是一个全序关系.
-Committed的History分支, 必须是最大的.
+即, 我们需要另一个read函数
+`read_linear() -> Vec<Event>` ,只返回一个线性的History,
+也就是一个`Vec<Event>`, 而不是DAG的History了.
+
+但是现在的`read()`返回的一个DAG, 它是所有节点上读到的History的并集,
+所以在实现上, `read_linear()` 通过 `read()` 得到一个DAG, 从中选择一个分支, 作为读到的History的结果.
+
+而且对于一个Committed的History, 多个`read_linear()`
+总是选择这个Committed的History.
+
+例如 分支E4和分支E3同时被读到, 那么`read_linear()`就总是选择E4(或总是选E3)
+
+![](multiverse-read-linear.excalidraw.png)
+
+这说明这个系统必须保证: 每个被读到的分支之间都必须有一个二元关系:
+例如上面, 如果E4和E3都被读到时, 总是选择E4, 那么就说E4大于E3, 
+这也是一个全序关系.
+
+而根据Committed 的定义, 它必须总是能被读到,
+因此这个系统必须满足 Committed的History分支, 必须是最大的.
+
+
 
 表示这个全序关系, 就说明每个History分支都有一个全序关系的属性 T,
 也就是说History上每个Event都对应一个全序关系的属性 T.
