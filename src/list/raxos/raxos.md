@@ -185,50 +185,77 @@ E1->E2->E3
 ![](history-visible-123.excalidraw.png)
 
 
-### Commit 的定义
+### Committed 的定义 和 数据丢失
 
-这里Commit的定义也很直观, 对一个History, 如果
-- 1 读操作可以通过系统中`read_quorum_set`中任意一个quorum读到它,
-
-这里还只是对某个系统的状态的Commit,
+直观上来说, 一个写操作达成Committed的状态就是说它总是能被读到了,
+在单机上来说一个写操作只要完成就是Committed,
 
 
+**def-Committed**:
 
-注意这跟系统的状态System是有关的, 这个系统可能发生变化导致History不能被读到了,
-那么这时就认为发生了数据丢失.
-例如, 一个3节点系统中, `read_quorum_set` 定义为
-`{{N1,N2}, {N2,N3}, {N1,N3}}`,
-这时如果 E3 从 N1 节点上删除了, 在这个系统状态的变化中, 就导致了`History{N1, N2, N3}`的丢失,
-因为 `read_quorum` `{N1, N2}` 无法读到 `History{N1, N2, N3}`.
+对一个History, 从系统的某个状态开始, 在后续的所有系统状态中都是 **总是可见** 的,
+那么就认为它是 Committed.
 
-但是`History{N1, N2}` 没有发生数据丢失, 因为从任意一个`read_quorum`
-都可以读到它.
-
-![](history-data-loss.excalidraw.png)
-
-
-## 高可用的定义
-
-可以看出, Commit的是跟`read_quorum_set`相关的, `read_quorum_set`越大,
-那么Committed达成的条件就越苛刻. 例如不做限制的3节点系统,
-达成Committed要求从任意节点都能读到这个History.
-
-高可用的定义(对读的定义)就是只需要一个`node_set`集合的子集就可以读到这个History.
-或者说, 这个`read()`操作容忍了某些个`node_set`子集的的故障.
-
-
-<!-- 如果保证一个History在 -->
-
-## 完整的 Committed 的定义
+<!-- or -->
 
 如果一个History从系统某个状态开始,
 后面所有的系统状态(包括每个节点上History副本变化和read_quorum_set变化),
 都能通过`read_quorum_set`读到, 那么这个History就是 Committed.
 
 
+如果系统的变化没能保证一个History **总是可见**,
+一般就是我们所说的数据丢失. 因为 **总是可见**
+的定义是跟节点上存储的数据的状态和`read_quorum_set`决定的,
+所以数据丢失一般常见的就是这两种:
+例如, 一个3节点系统中, `read_quorum_set` 定义为
+`{{N1,N2}, {N2,N3}, {N1,N3}}`,
+
+- 节点上History副本状态回退, 例如磁盘损坏等; 
+
+    这时如果 E3 从 N1 节点上删除了, 在这个系统状态的变化中, 就导致了`History{N1, N2, N3}`的丢失,
+    因为 `read_quorum` `{N1, N2}` 无法读到 `History{N1, N2, N3}`.
+
+    但是`History{N1, N2}` 没有发生数据丢失, 因为从任意一个`read_quorum`
+    都可以读到它.
+
+- 或者是系统的`read_quorum_set` 发生变化, 例如raft的单步成员变更算法的bug(已解决), 实际上就是read_quorum_set变化产生的. 下图中对应`read_quorum_set` 增加了`{N2}`  的情况.
+
+TODO: 更新连接
+https://blog.openacid.com/distributed/raft-bug/#raft-%E5%8D%95%E6%AD%A5%E5%8F%98%E6%9B%B4%E7%9A%84bug
+
+
+![](history-data-loss.excalidraw.png)
+
+
+
+## 系统可用性
+
+可以看出, Committed 的是跟`read_quorum_set`相关的,
+一般来说, `read_quorum_set`越大,
+那么 Committed 达成的条件就越苛刻.
+
+
+反之, 如果 `read_quorum_set` 越小, 系统提供的读的可用性就越高,
+因为系统可以容忍更多节点宕机的组合(的概率)了;
+然而`read_quorum_set`的缩小会要求对应的`write_quorum_set`的增大,
+导致系统能对写提供的可用性降低.
+
+例如不做限制的3节点系统(`read_quorum_set={{N1}, {N2}, {N3}, {N1,N2}, {N2,N3}, {N1,N3}, {N1,N2,N3}`),
+要达成 Committed, 它的`read_quorum_set`是最大的, 就要求从任意节点都能读到这个History,
+读操作不能容忍任何节点故障.
+
+如果将`read_quorum_set` 去掉几个元素, 例如去掉`{N1}`,
+即系统不再要求从`N1`节点上能读到这个History了, 系统就容忍了一定的故障(`N1`的故障),
+也就是说可用性提高了.
+
+高可用的定义(对读的定义)就是只需要一个系统的`read_quorum_set`有多小, 
+或者说, 这个`read()`操作容忍了某些个`node_set`子集的的故障.
+
+
+
 ## 多重宇宙里的分布式一致性
 
-如果允许History非线性(到目前为止我们都没有要求History是线性的),
+如果允许History 是树状的或图样的(到目前为止我们都没有要求History是线性的),
 那么以上就是分布式高可用一致性算法的实现:
 
 向一个`write_quorum` 添加(不是替换)一个History 分支,
