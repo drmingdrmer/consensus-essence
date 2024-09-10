@@ -160,6 +160,20 @@ E1->E2->E3
 
 一对 `read_quorum_set` 和 `write_quorum_set` 保证了: 每次写入都能被读到.
 
+例如, 如果一个3节点集群的read_quorum_set 是多数派, 即`{{N1,N2}, {N1,N3}, {N2,N3}}`, 那么它的`write_quorum_set`就可以是多数派`{{N1,N2}, {N1,N3}, {N2,N3}}`,
+也就是常说的多数派读写quorum-rw的配置. 这里也可以看出quorum-rw只是分布式一致性的一个组成部分.
+
+![](quorum-majority-3.excalidraw.png)
+
+又如, 一个4节点的集群的`read_quorum_set` 如果是`{{N1,N2}, {N3, N4}}`, 那么它的`write_quorum_set`就可以是`{{N1,N3}, {N2,N4}}`.
+
+
+![](quorum-2x2.excalidraw.png)
+
+如果一个`n*n`节点的集群的`read_quorum_set`定义是n*n矩阵中任意一行, 那么它的`write_quorum_set`定义就可以是任意一列.
+
+![](quorum-nxn.excalidraw.png)
+
 
 ## 对系统总是可见的 History
 
@@ -330,73 +344,69 @@ https://blog.openacid.com/distributed/raft-bug/#raft-%E5%8D%95%E6%AD%A5%E5%8F%98
 
 这说明这个系统必须保证: 每个被读到的分支之间都必须有一个二元关系:
 例如上面, 如果E4和E3都被读到时, 总是选择E4, 那么就说E4大于E3, 
-这也是一个全序关系.
+这也是一个全序关系. 当然read_linear也可以在E3 E4之间总是选择E3,
+这时我们就说E3大于E4.
+
+###  虚拟时间的诞生
+
+为表示这个全序关系, 就说明每个History分支都有一个全序关系的属性 T,
+因为每个History的节点对应一个分支, 
+这也就是说History上每个Event都对应一个全序关系的属性 T.
+这个属性T的大小用来决定`read_linear()`读到多个分支时选择哪个.
+
+如下图, `read_linear()`
+根据每个Event节点对应的T来决定每个分支的大小并选择最大的哪个分支,
+从而保证 **读的一致性**.
+
+![](multiverse-read-by-t.excalidraw.png)
+
+可以看到, 每次读到的History上的每个Event节点都有一个顺次递增的T属性,
+我们把这个T属性看作是这个系统的 **虚拟时间**.
+为什么我们把它称作时间呢?
+- 不能回退,
+- 每个Event对应一个T
+- 决定了Event的顺序.
+
+到此, 我们看到, 为了将多分支的历史筛选成单分支的线性历史, 必须引入时间的概念.
+
+
+后面我们会看到这个 **虚拟时间**
+在分布式一致性协议里的角色跟我们现实中的墙上时钟几乎是完全一样的.
+
+
+### write 的变化
+
+write会有一些改变: 通过read_linear()读到的History后,
+在其上添加一个Event时, 也必须附带一个比History的最大T更大的T,
+并且只能在最后一个Event节点上添加新的Event.
+
+即保证, 随着History中Event的增加,  T是单调递增的, 永远不会回退.
+
+现在write流程调整为如下图, 后面我们看选择单一历史后对commit还有哪些调整:
+
+![](linear-rw.excalidraw.png)
+
+
 
 而根据Committed 的定义, 它必须总是能被读到,
-因此这个系统必须满足 Committed的History分支, 必须是最大的.
-
-
-
-表示这个全序关系, 就说明每个History分支都有一个全序关系的属性 T,
-也就是说History上每个Event都对应一个全序关系的属性 T.
+因此这个系统必须满足 Committed的History分支, 在写入完成时, 必须(在任一read_quorum中)是最大的.
 
 每次Commit一个Event, 它必须具有全局中最大的T.
 
-或者说, 随着History中Event的增加,  T是单调递增的, 永远不会回退.
-
-所以我们称之为这个分布式系统的**虚拟的** 时间.
-
-所以说, 时间可以理解为将高纬度的空间映射到一维上的一个映射关系.
-
-
-
-
-
-<!--
-   - ## Read Quorum Set
-   - 
-   - 虽然对每个具体的History, 我们都知道它的quorum有哪些.
-   - 但是对一个外部读函数`read`来说, 它不知道有哪些history,
-   - 这时就需要系统约定一组用来给`read()` 函数用的节点集合的集合, 也就是这个系统用来读的quorum_set.
-   - `read_quorum_set: {{N1,N2}, {N2,N3} ...}`.
-   - 
-   - 一般来说, 例如paxos或raft, 用**多数派**节点集合 作为系统的读quorum_set, 例如3节点系统中,
-   - `read_quorum_set = {{N1,N2}, {N1,N3},{N2,N3}, {N1,N2,N3}}`. 注意这里节点全集`{N1,N2,N3}`是其他quorum的超集, 所以显然也可以作为一个quorum, 但后面一般不把其他quorum的超集写出来了.
-   -->
 
 ## Commit 在线性History约束中的定义
 
-这里Commit的定义也很直观, 对一个History, 如果
-- 1 读操作可以通过系统中`read_quorum_set`中任意一个quorum读到它,
-- 2 且总是能读到, 
+这里Commit的定义没有变, 即对一个History永远能读到
+但是我们现在用read_linear() 替换了read(),
+它会抛弃一些History分支,
+所以要保证Commit, 一次写入不仅要保证read() 总是可见,
+还要保证read_linear()总是可见.
+对一个History, 如果
+- 1 读操作read_linear()可以通过系统中`read_quorum_set`中任意一个read_quorum读到它,
+- 2 且总是能被选择, 即它有最大的T, 或是一个最大T的History的一部分(这样它也能被选择).
 
 它就是Committed.
 
-第二个条件是显然要保证的, 否则认为数据丢失了.
-
-例如下面的这个副本状态中:
-- 如果定义系统的`read_quorum_set`是多数派,即`{{N1,N2}, {N1,N3},{N2,N3}}`, 那么`History{E1,E2}` 是Committed状态, 总是能被读到, `History{E1,E2,E3}` 不是,因为`read({N2,N3})` 不会返回它.
-
-
-![](history-committted-12.excalidraw.png)
-
-- 而如果更改系统的`read_quorum_set`定义, 改成`{{N1,N2}, {N1,N3}}`, 即要求所有读操作都必须读到N1节点,那么`History{E1,E2,E3}` 就可以认为是Committed状态.
-
-![](history-committted-123.excalidraw.png)
-
-<!--
-   - # 读最大History
-   - 
-   - 显然现在的`read()` 操作返回多个结果, 但我们的分布式一致性协议要求只返回一个History, 
-   - 所以`read2()`必须选择其中一个, 我们选择History最大的那个, 这里最大是指History中Time最大的那个Event的Time, 作为History的大小.
-   - 在读到的多个History中,任何一个都可能是Commit的, 虽然最大的History可能是没有Commit, 但我们因为不能确定, 还是必须选择它.
-   - 
-   - 
-   - 
-   - 但是最大History不一定是Commit的, 我们还没有对写流程做任何约束,
-   - 只需保证上面已经列出的条件, 其中和write有关的就是Commit的第二个条件, 
-   - **一个读操作读到了一个History, 那么以后也应该一直能读到**.
-   -->
 
 # Write约束
 
@@ -404,27 +414,6 @@ https://blog.openacid.com/distributed/raft-bug/#raft-%E5%8D%95%E6%AD%A5%E5%8F%98
 
 这表示writer 写入时, 不能覆盖已有History, 只能追加.
 即如果一个节点上的History是`{E1,E2}`, 那么不能被替换成`{E1,E3}`, 可以替换成`{E1,E2,E3}`.
-
-<!--
-   - ## Write quorum set
-   - 
-   - 另外, 根据上面对read的要求, Write的History达成Commit的条件是必须保证所有read-quorum都能读到它写的History.
-   - 这就引出了`write_quorum_set`的定义: `write_quorum_set`中每个元素是一个节点的集合, 每个集合都跟`read_quorum_set`中的每个集合有交集.
-   - 
-   - 例如, 如果一个3节点集群的read_quorum_set 是多数派, 即`{{N1,N2}, {N1,N3}, {N2,N3}}`, 那么它的`write_quorum_set`就可以是多数派`{{N1,N2}, {N1,N3}, {N2,N3}}`,
-   - 也就是常说的多数派读写quorum-rw的配置. 这里也可以看出quorum-rw只是分布式一致性的一个组成部分.
-   - 
-   - ![](quorum-majority-3.excalidraw.png)
-   - 
-   - 又如, 一个4节点的集群的`read_quorum_set` 如果是`{{N1,N2}, {N3, N4}}`, 那么它的`write_quorum_set`就可以是`{{N1,N3}, {N2,N4}}`.
-   - 
-   - 
-   - ![](quorum-2x2.excalidraw.png)
-   - 
-   - 如果一个n*n节点的集群的`read_quorum_set`定义是n*n矩阵中任意一行, 那么它的`write_quorum_set`定义就可以是任意一列.
-   - 
-   - ![](quorum-nxn.excalidraw.png)
-   -->
 
 ## Write Prepare
 
