@@ -1,8 +1,7 @@
 use std::collections::BTreeMap;
 
-use crate::apaxos::proposal::Proposal;
+use crate::apaxos::errors::APError;
 use crate::APaxos;
-use crate::Distribute;
 use crate::QuorumSet;
 use crate::Transport;
 use crate::Types;
@@ -13,39 +12,37 @@ pub struct Phase2<'a, T: Types> {
     /// The time of the Proposer that running phase1.
     pub time: T::Time,
 
-    pub decided: Proposal<T, T::Event>,
+    pub decided: T::History,
 
-    pub granted: BTreeMap<T::AcceptorId, ()>,
+    pub accepted: BTreeMap<T::AcceptorId, ()>,
 }
 
 impl<'a, T: Types> Phase2<'a, T> {
-    pub fn run(mut self) -> Proposal<T, T::Event> {
+    pub fn run(mut self) -> Result<T::History, APError<T>> {
         let apaxos = &mut self.apaxos;
 
         let mut sent = 0;
 
         let acceptor_ids = apaxos.acceptors.keys();
-        let parts = apaxos.distribute.distribute(self.decided.data.clone(), acceptor_ids.clone());
 
-        let id_parts = acceptor_ids.zip(parts);
-
-        for (id, part) in id_parts {
-            let p = Proposal::new(self.decided.propose_time, part);
-            apaxos.transport.send_phase2_request(*id, self.time, p);
+        for id in acceptor_ids {
+            apaxos.transport.send_phase2_request(*id, self.decided.clone());
             sent += 1;
         }
 
         for _ in 0..sent {
             let (target, is_accepted) = apaxos.transport.recv_phase2_reply();
             if is_accepted {
-                self.granted.insert(target, ());
+                self.accepted.insert(target, ());
             }
 
-            if apaxos.quorum_set.is_write_quorum(self.granted.keys().cloned()) {
-                return self.decided;
+            if apaxos.quorum_set.is_write_quorum(self.accepted.keys().cloned()) {
+                return Ok(self.decided);
             }
         }
 
-        unreachable!("not enough acceptors")
+        Err(APError::WriteQuorumNotReached {
+            accepted: self.accepted,
+        })
     }
 }

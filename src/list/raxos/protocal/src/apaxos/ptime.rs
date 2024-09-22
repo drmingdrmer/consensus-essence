@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use std::hash::Hash;
 
 use crate::apaxos::greater_equal::GreaterEqual;
 
@@ -20,6 +21,10 @@ use crate::apaxos::greater_equal::GreaterEqual;
 /// [Partially-Ordered-set]: https://en.wikipedia.org/wiki/Partially_ordered_set
 /// [DAG]: https://en.wikipedia.org/wiki/Directed_acyclic_graph
 /// [Topological-order]: https://en.wikipedia.org/wiki/Topological_sorting
-pub trait Time: Default + Debug + Clone + Copy + PartialEq + Eq + GreaterEqual + 'static {}
+pub trait Time:
+    Default + Debug + Clone + Copy + PartialEq + Eq + Hash + GreaterEqual + 'static
+{
+}
 
-impl<T> Time for T where T: Default + Debug + Clone + Copy + PartialEq + Eq + GreaterEqual + 'static {}
+impl<T> Time for T where T: Default + Debug + Clone + Copy + PartialEq + Eq + Hash + GreaterEqual + 'static
+{}

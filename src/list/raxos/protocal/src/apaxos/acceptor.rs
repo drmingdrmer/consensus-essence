@@ -1,7 +1,6 @@
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 use std::error::Error;
 use std::fmt::Debug;
-use std::fmt::Formatter;
 
 use validit::Validate;
 
@@ -13,7 +12,7 @@ use crate::Types;
 pub struct Acceptor<T: Types> {
     /// A Time that is smaller than any one of these time
     /// is not allow to commit.
-    pub forbidden_commit_time: BTreeSet<T::Time>,
+    pub forbidden_commit_time: HashSet<T::Time>,
 
     pub history: T::History,
 }
@@ -21,18 +20,6 @@ pub struct Acceptor<T: Types> {
 impl<T: Types> Validate for Acceptor<T> {
     fn validate(&self) -> Result<(), Box<dyn Error>> {
         Ok(())
-    }
-}
-
-impl<T: Types> Default for Acceptor<T>
-where
-    T::Time: std::hash::Hash,
-{
-    fn default() -> Self {
-        Self {
-            forbidden_commit_time: Default::default(),
-            history: Default::default(),
-        }
     }
 }
 
@@ -48,8 +35,8 @@ impl<T: Types> Acceptor<T> {
     /// For example, **2PC** will revert the `Time` if the coordinator receives
     /// conflicting votes(otherwise other [`Proposer`] can not proceed). But
     /// **Classic Paxos** does not have to revert the `Time` but it could.
-    pub(crate) fn handle_phase1_request(&mut self, commit_time: T::Time) -> (T::Time, Self) {
-        if self.is_committable(commit_time) {
+    pub(crate) fn handle_phase1_request(&mut self, commit_time: T::Time) -> (T::Time, T::History) {
+        if self.is_committable(&commit_time) {
             return (commit_time, self.history.visible(commit_time));
         }
 
@@ -57,18 +44,18 @@ impl<T: Types> Acceptor<T> {
         (commit_time, self.history.visible(commit_time))
     }
 
-
     pub(crate) fn handle_phase2_request(&mut self, history: T::History) -> bool {
         dbg!("handle_phase2_request", history);
 
-        let maximals = history.maximals().collect::<Vec<_>>();
-        dbg!("handle_phase2_request", maximals);
+        let mut maximals = history.maximal_times();
+        let new_written_time = maximals.next().unwrap();
 
-        assert_eq!(maximals.len(), 1, "A proposer commit a history reachable from only one single time");
+        assert!(
+            maximals.next().is_none(),
+            "A proposer commit a history reachable from only one single time"
+        );
 
-        let cc = maximals[0];
-
-        if self.is_committable(cc) {
+        if self.is_committable(&new_written_time) {
             return false;
         }
 
@@ -80,7 +67,7 @@ impl<T: Types> Acceptor<T> {
     /// Check it is allowed to commit at the specified time.
     fn is_committable(&self, time: &T::Time) -> bool {
         for t in self.forbidden_commit_time {
-            if t.greater_equal(time) && t != time {
+            if t.is_gt(time) {
                 return false;
             }
         }

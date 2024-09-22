@@ -3,7 +3,7 @@
 //! Such as `majority` as the quorum used in raft, or `u64` as the ballot number
 //! used in paxos.
 
-pub mod distribute;
+pub mod history;
 pub mod quorum_set;
 pub mod time;
 pub mod transport;

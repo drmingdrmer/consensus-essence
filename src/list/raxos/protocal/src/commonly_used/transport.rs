@@ -2,7 +2,6 @@ use std::collections::BTreeMap;
 use std::collections::VecDeque;
 
 use crate::apaxos::acceptor::Acceptor;
-use crate::apaxos::proposal::Proposal;
 use crate::Transport;
 use crate::Types;
 
@@ -10,7 +9,7 @@ use crate::Types;
 pub struct DirectCall<T: Types> {
     acceptors: BTreeMap<T::AcceptorId, Acceptor<T>>,
 
-    p1_replies: VecDeque<(T::AcceptorId, (T::Time, Acceptor<T>))>,
+    p1_replies: VecDeque<(T::AcceptorId, (T::Time, T::History))>,
     p2_replies: VecDeque<(T::AcceptorId, bool)>,
 }
 
@@ -32,18 +31,12 @@ impl<T: Types> Transport<T> for DirectCall<T> {
         self.p1_replies.push_back((target, reply));
     }
 
-    fn recv_phase1_reply(&mut self) -> (T::AcceptorId, (T::Time, Acceptor<T>)) {
+    fn recv_phase1_reply(&mut self) -> (T::AcceptorId, (T::Time, T::History)) {
         self.p1_replies.pop_front().unwrap()
     }
 
-    fn send_phase2_request(
-        &mut self,
-        target: T::AcceptorId,
-        t: T::Time,
-        proposal_part: Proposal<T, T::Part>,
-    ) {
-        let reply =
-            self.acceptors.get_mut(&target).unwrap().handle_phase2_request(t, proposal_part);
+    fn send_phase2_request(&mut self, target: T::AcceptorId, history: T::History) {
+        let reply = self.acceptors.get_mut(&target).unwrap().handle_phase2_request(history);
         self.p2_replies.push_back((target, reply));
     }
 

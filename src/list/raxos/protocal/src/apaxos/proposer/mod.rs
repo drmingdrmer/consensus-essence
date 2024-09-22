@@ -1,7 +1,8 @@
 use phase1::Phase1;
 use phase2::Phase2;
 
-use crate::apaxos::proposal::Proposal;
+use crate::apaxos::errors::APError;
+use crate::apaxos::history::History;
 use crate::APaxos;
 use crate::Types;
 
@@ -13,28 +14,27 @@ mod phase2;
 pub struct Proposer<'a, T: Types> {
     apaxos: &'a mut APaxos<T>,
     time: T::Time,
-    proposal: Proposal<T, T::Event>,
+    event: T::Event,
 }
 
 impl<'a, T: Types> Proposer<'a, T> {
     /// Create an instance of [`APaxos`] that tries to commit `value` at `time`
     /// to the distributed system.
-    pub fn new(apaxos: &'a mut APaxos<T>, time: T::Time, value: T::Event) -> Self {
+    pub fn new(apaxos: &'a mut APaxos<T>, time: T::Time, event: T::Event) -> Self {
         Self {
             apaxos,
             time,
-            proposal: Proposal::new(time, value),
+            event,
         }
     }
 
-    pub fn run(&mut self) -> Proposal<T, T::Event> {
-        let maybe_committed = self.new_phase1().run();
-        let committed = self.new_phase2(maybe_committed).run();
+    pub fn run(&mut self) -> Result<T::History, APError<T>> {
+        let maybe_committed = self.new_phase1().run()?;
+        let committed = self.new_phase2(maybe_committed).run()?;
 
-        committed
+        Ok(committed)
     }
 
-    // TODO: phase-1-revert
     fn new_phase1(&mut self) -> Phase1<T> {
         Phase1 {
             apaxos: &mut self.apaxos,
@@ -44,12 +44,13 @@ impl<'a, T: Types> Proposer<'a, T> {
         }
     }
 
-    fn new_phase2(&mut self, maybe_committed: Option<Proposal<T, T::Event>>) -> Phase2<T> {
+    fn new_phase2(&mut self, mut maybe_committed: T::History) -> Phase2<T> {
+        maybe_committed.append(self.time, self.event.clone());
         Phase2 {
             apaxos: &mut self.apaxos,
             time: self.time,
-            decided: maybe_committed.unwrap_or_else(|| self.proposal.clone()),
-            granted: Default::default(),
+            decided: maybe_committed,
+            accepted: Default::default(),
         }
     }
 }

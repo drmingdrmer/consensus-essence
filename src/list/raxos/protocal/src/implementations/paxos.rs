@@ -7,22 +7,21 @@
 //! - To rebuild a **maybe committed** value with [`Distribute`], it just use
 //!   the one with max `v_ballot`.
 
-use crate::commonly_used::distribute::Mirrored;
+use crate::commonly_used::history::one_slot::OneSlotHistory;
 use crate::commonly_used::quorum_set::majority::Majority;
 use crate::commonly_used::transport::DirectCall;
 use crate::Types;
 
 /// Implement classic-paxos with abstract-paxos
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 struct Paxos {}
 
 impl Types for Paxos {
     type Time = u64;
     type Event = String;
-    type Part = String;
+    type History = OneSlotHistory<Paxos>;
     type QuorumSet = Majority<Paxos>;
     type Transport = DirectCall<Paxos>;
-    type Distribute = Mirrored<Paxos>;
 }
 
 #[cfg(test)]
@@ -31,14 +30,13 @@ mod tests {
 
     use crate::apaxos::acceptor::Acceptor;
     use crate::apaxos::proposer::Proposer;
-    use crate::commonly_used::distribute::Mirrored;
     use crate::commonly_used::quorum_set::majority::Majority;
     use crate::commonly_used::transport::DirectCall;
     use crate::implementations::paxos::Paxos;
     use crate::APaxos;
 
     #[test]
-    fn test_paxos() {
+    fn test_paxos() -> Result<(), Box<dyn std::error::Error>> {
         //
 
         let acceptor_ids = [1, 2, 3];
@@ -50,12 +48,11 @@ mod tests {
 
         let quorum_set = Majority::new(acceptor_ids);
         let transport = DirectCall::new(acceptors.clone());
-        let distribute = Mirrored::<Paxos>::new();
 
-        let mut apaxos = APaxos::<Paxos>::new(acceptor_ids, quorum_set, distribute, transport);
+        let mut apaxos = APaxos::<Paxos>::new(acceptor_ids, quorum_set, transport);
 
         let mut proposer = Proposer::new(&mut apaxos, 5, "hello".to_string());
-        let committed = proposer.run();
+        let committed = proposer.run()?;
 
         assert_eq!(committed.propose_time, 5);
         assert_eq!(committed.data, "hello".to_string());

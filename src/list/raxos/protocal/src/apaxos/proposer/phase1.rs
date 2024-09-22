@@ -1,10 +1,8 @@
 use std::collections::BTreeMap;
 
-use crate::apaxos::accepted::Accepted;
-use crate::apaxos::greater_equal::GreaterEqual;
-use crate::apaxos::proposal::Proposal;
+use crate::apaxos::errors::APError;
+use crate::apaxos::history::History;
 use crate::APaxos;
-use crate::Distribute;
 use crate::QuorumSet;
 use crate::Transport;
 use crate::Types;
@@ -21,16 +19,16 @@ pub struct Phase1<'a, T: Types> {
     /// [`Proposer`]'s phase-1 request.
     ///
     /// These `previous` [`Time`]s are used to revert the [`Acceptor`]'s time.
-    pub granted: BTreeMap<T::AcceptorId, T::Time>,
+    pub granted: BTreeMap<T::AcceptorId, ()>,
 
     /// The value part that the acceptor has accepted.
     ///
     /// These value parts are proposed by smaller [`Proposer`]s.
-    pub previously_accepted: BTreeMap<T::AcceptorId, Accepted<T>>,
+    pub previously_accepted: T::History,
 }
 
 impl<'a, T: Types> Phase1<'a, T> {
-    pub fn run(&mut self) -> Option<Proposal<T, T::Event>> {
+    pub fn run(mut self) -> Result<T::History, APError<T>> {
         let apaxos = &mut self.apaxos;
 
         let mut sent = 0;
@@ -40,68 +38,27 @@ impl<'a, T: Types> Phase1<'a, T> {
             sent += 1;
         }
 
-        let mut max_accept_time = T::Time::default();
-        let mut is_quorum = false;
-
         for _ in 0..sent {
-            let (target, (prev_time, a)) = self.apaxos.transport.recv_phase1_reply();
-            dbg!("received phase-1 reply", &target, &a);
-            if a.time != self.time {
+            let (target, (greater_equal_time, history)) = self.apaxos.transport.recv_phase1_reply();
+            dbg!("received phase-1 reply", &target, &history);
+            if greater_equal_time != self.time {
                 // Phase-1 request is rejected.
                 continue;
             }
 
-            self.granted.insert(target, prev_time);
-            is_quorum =
-                is_quorum || self.apaxos.quorum_set.is_read_quorum(self.granted.keys().cloned());
+            self.granted.insert(target, ());
+            self.previously_accepted.merge(history);
 
-            if let Some(accepted) = a.accepted {
-                if accepted.accept_time.greater_equal(&max_accept_time) {
-                    max_accept_time = accepted.accept_time;
-                }
+            let is_read_quorum =
+                self.apaxos.quorum_set.is_read_quorum(self.granted.keys().copied());
 
-                self.previously_accepted.insert(target, accepted);
-            }
-
-            if is_quorum {
-                if let Some(x) = self.rebuild(max_accept_time) {
-                    return Some(x);
-                }
+            if is_read_quorum {
+                return Ok(self.previously_accepted);
             }
         }
 
-        if is_quorum {
-            None
-        } else {
-            unreachable!("TODO: no read quorum constituted")
-        }
-    }
-
-    /// Rebuild the proposal using the parts from the replies.
-    ///
-    /// First, identify a reply with the max accept time, as this is the only
-    /// proposal that can be committed.
-    ///
-    /// Second, find out the propose-time of that specific reply. Regardless of
-    /// the accept-time, replies with the same propose-time originate from
-    /// the same [`Proposer`] and are always compatible for reconstructing
-    /// the original proposal.
-    fn rebuild(&mut self, max_accept_time: T::Time) -> Option<Proposal<T, T::Event>> {
-        let apaxos = &mut self.apaxos;
-
-        let (_aid, accepted) = self
-            .previously_accepted
-            .iter()
-            .filter(|(_, a)| a.accept_time == max_accept_time)
-            .next()?;
-        let propose_time = accepted.proposal.propose_time;
-
-        let it = self
-            .previously_accepted
-            .iter()
-            .filter(|(_, a)| a.proposal.propose_time == propose_time)
-            .map(|(id, a)| (id, &a.proposal.data));
-        let rebuilt_value = apaxos.distribute.rebuild(it);
-        rebuilt_value.map(|x| Proposal::new(propose_time, x))
+        Err(APError::ReadQuorumNotReached {
+            accepted: self.granted,
+        })
     }
 }

@@ -6,7 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+thiserror = "1.0.63"
 validit = { version = "0.2.4" }
+
 
 [dev-dependencies]
 maplit = "1.0.2"

@@ -15,6 +15,12 @@
 ///   absent, transitioning from `c` to `a` is not allowed.
 // TODO: consider add RHS as parameter to GreaterEqual
 pub trait GreaterEqual {
+    /// if greater than `other`
+    fn is_gt(&self, other: &Self) -> bool
+    where Self: PartialEq {
+        self.greater_equal(other) && self != other
+    }
+
     fn greater_equal(&self, other: &Self) -> bool;
 }
 
