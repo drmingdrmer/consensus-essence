@@ -36,7 +36,7 @@ where Self: Default + Debug + Clone
     /// All `maximal` have no order between them.
     fn maximals(&self) -> impl Iterator<Item = (T::Time, T::Event)>;
 
-    fn maximal_times(&self) -> impl Iterator<Item = T::Time> {
+    fn maximal_times<'a>(&'a self) -> impl Iterator<Item = T::Time> + 'a {
         self.maximals().map(|(t, _)| t)
     }
 

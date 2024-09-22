@@ -45,18 +45,20 @@ impl<T: Types> Acceptor<T> {
     }
 
     pub(crate) fn handle_phase2_request(&mut self, history: T::History) -> bool {
-        dbg!("handle_phase2_request", history);
+        dbg!("handle_phase2_request", &history);
 
-        let mut maximals = history.maximal_times();
-        let new_written_time = maximals.next().unwrap();
+        {
+            let mut maximals = history.maximal_times();
+            let new_written_time = maximals.next().unwrap();
 
-        assert!(
-            maximals.next().is_none(),
-            "A proposer commit a history reachable from only one single time"
-        );
+            assert!(
+                maximals.next().is_none(),
+                "A proposer commit a history reachable from only one single time"
+            );
 
-        if self.is_committable(&new_written_time) {
-            return false;
+            if self.is_committable(&new_written_time) {
+                return false;
+            }
         }
 
         self.history.merge(history);
@@ -66,7 +68,7 @@ impl<T: Types> Acceptor<T> {
 
     /// Check it is allowed to commit at the specified time.
     fn is_committable(&self, time: &T::Time) -> bool {
-        for t in self.forbidden_commit_time {
+        for t in &self.forbidden_commit_time {
             if t.is_gt(time) {
                 return false;
             }

@@ -54,15 +54,21 @@ mod tests {
         let mut proposer = Proposer::new(&mut apaxos, 5, "hello".to_string());
         let committed = proposer.run()?;
 
-        assert_eq!(committed.propose_time, 5);
-        assert_eq!(committed.data, "hello".to_string());
+        assert_eq!(committed.value_time(), Some(5));
+        assert_eq!(committed.value().cloned(), Some(s("hello")));
 
         let mut proposer = Proposer::new(&mut apaxos, 6, "world".to_string());
-        let committed = proposer.run();
+        let committed = proposer.run()?;
 
-        assert_eq!(committed.propose_time, 5);
-        assert_eq!(committed.data, "hello".to_string());
+        assert_eq!(committed.value_time(), Some(5));
+        assert_eq!(committed.value().cloned(), Some(s("hello")));
+
+        Ok(())
 
         // TODO: rebuild from previous value
+    }
+
+    fn s(s: impl ToString) -> String {
+        s.to_string()
     }
 }

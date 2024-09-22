@@ -12,6 +12,16 @@ impl<T: Types> Default for OneSlotHistory<T> {
     }
 }
 
+impl<T: Types> OneSlotHistory<T> {
+    pub fn value_time(&self) -> Option<T::Time> {
+        self.history.clone().map(|(t, _)| t)
+    }
+
+    pub fn value(&self) -> Option<&T::Event> {
+        self.history.as_ref().map(|(_, e)| e)
+    }
+}
+
 impl<T: Types> History<T> for OneSlotHistory<T> {
     fn append(&mut self, time: T::Time, event: T::Event) {
         todo!()
