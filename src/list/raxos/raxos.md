@@ -374,24 +374,12 @@ https://blog.openacid.com/distributed/raft-bug/#raft-%E5%8D%95%E6%AD%A5%E5%8F%98
 在分布式一致性协议里的角色跟我们现实中的墙上时钟几乎是完全一样的.
 
 
-### write 的变化
-
-write会有一些改变: 通过read_linear()读到的History后,
-在其上添加一个Event时, 也必须附带一个比History的最大T更大的T,
-并且只能在最后一个Event节点上添加新的Event.
-
-即保证, 随着History中Event的增加,  T是单调递增的, 永远不会回退.
-
-现在write流程调整为如下图, 后面我们看选择单一历史后对commit还有哪些调整:
-
-![](linear-rw.excalidraw.png)
-
-
-
-而根据Committed 的定义, 它必须总是能被读到,
-因此这个系统必须满足 Committed的History分支, 在写入完成时, 必须(在任一read_quorum中)是最大的.
-
-每次Commit一个Event, 它必须具有全局中最大的T.
+<!--
+   - 而根据Committed 的定义, 它必须总是能被读到,
+   - 因此这个系统必须满足 Committed的History分支, 在写入完成时, 必须(在任一read_quorum中)是最大的.
+   - 
+   - 每次Commit一个Event, 它必须具有全局中最大的T.
+   -->
 
 
 ## Commit 在线性History约束中的定义
@@ -412,17 +400,43 @@ write会有一些改变: 通过read_linear()读到的History后,
 
 ## Write只追加History
 
-这表示writer 写入时, 不能覆盖已有History, 只能追加.
-即如果一个节点上的History是`{E1,E2}`, 那么不能被替换成`{E1,E3}`, 可以替换成`{E1,E2,E3}`.
+write会有一些改变: 通过read_linear()读到的History后,
+不能覆盖已有History, 只能追加.
+在其上添加一个Event时, 也必须附带一个比History的最大T更大的T,
+并且只能在最后一个Event节点上添加新的Event.
+
+即保证, 随着History中Event的增加,  T是单调递增的, 永远不会回退.
+
+现在write流程调整为如下图, 注意这里写回N1的时候,
+N1本地将已有History跟新写入的History合并了, 本地存储了一个多分支的History,
+这种情况是允许的, 因为read_linear() 保证会将**旧的**History分支忽略掉.
+在实现中, 因为read_linear()一定同时读到一个存储节点上的多个分支,
+所以一定会舍弃掉较小的分支, 所以在实现上一般可以直接删掉较小的分支,
+例如raft的truncate log就是在添加新的分支前删掉较小分支.
+但我仍然在这个文章里保留这个分支, 以展示分布式一致性协议的真实的样子.
+
+![](linear-rw.excalidraw.png)
+
 
 ## Write Prepare
 
-虽然Write写到了`write_quorum_set`, 但是2因为read 会选择最大History, 所以可能产生一个问题, 因为有更大的History, 导致read忽略了写到`write_quorum_set`的History:
+现在write保证了不覆盖已有的History, 且写到了`write_quorum_set`,
+能保证`read()` 一定读到它, 但还没能保证read_linear()一定选择它.
 
-例如可能有2个Writer W3 和 W4, W3写了N1,N2, W4写了N3.
-我们假设系统的`read_quorum_set`是多数派模式, 那么W3写的History{E1,E2,E3} 虽然能被任意一个read读到,
-但是如果read操作选择了quorum {N2,N3}, 那么它会选择W4写入的更大的History{E1,E2,E4}, 
-如果read操作选择了quorum {N1,N2}, 那么它会选择W3写入的更大的History{E1,E2,E3}, 
+所以可能产生一个问题, 写入完成时, 可能因为系统中有更大的History,
+导致read_linear()忽略了自己写`write_quorum_set`的History:
+
+例如可能有2个Writer W8 和 W9,
+- W8写了N1,N2,
+- W9写了N3.
+
+我们假设系统的`read_quorum_set`是多数派模式,
+那么W8写的History{..,E3} 虽然能被任意一个read()读到,但不一定被read_linear()
+读到:
+
+- 如果read_linear()操作选择了read_quorum {N1,N2}, 那么它会选择W8写入的History{..,E3}, 得到预期的结果
+- 但是如果read_linear()操作选择了read_quorum {N2,N3}, 那么它会选择W9写入的更大的History{..,E4}, 
+
 这违背了Commit的原则, 没有达到**总是能被读到**的要求.
 
 ![](history-dirty-write.excalidraw.png)
@@ -430,26 +444,51 @@ write会有一些改变: 通过read_linear()读到的History后,
 ## Write阻止更小的History被Commit
 
 所以Writer把History写到节点上前, 必须要求没有更小的History被Commit.
-所以假设Write要写的History的Time是T, 首先要发一个消息, 给一个`read_quorum`, 要求这个`read_quorum`里的节点都不接受小于T的write消息.
-之所以是要写到一个`read_quorum`, 是因为系统中任意一个read_quorum跟任意一个write_quorum有交集, 但是write_quorum之间, 或read_quorum之间没有必须有交集的约束.
-所以为了阻止其他write, 要写到一个read_quorum里.
+在上面的例子中, W9 在写入History{.., E4}前, 必须组织W8写.
+这里的阻止是指, 不允许W8认为自己Commit成功了.
+
+所以假设Write要写的History的大小是T, 它首先要发一个消息, 给一个`read_quorum`, 要求这个`read_quorum`里的节点都不接受小于T的write消息.
+
+之所以是要写到一个`read_quorum`, 是因为系统中任意一个read_quorum跟任意一个write_quorum有交集, (但是write_quorum之间, 或read_quorum之间没有必须有交集的约束),
+这样W8在执行write History{.., E3}时,
+它的write_quorum里就至少有一个节点阻止它的写入, 避免W8误以为自己可以成功Commit.
+
 
 ## Write 要基于已经Commit的History追加
 
 阻止了更小History的写入后, writer就可以选择一个在T时间的History来写入(即History的最后一个Event的Time是T), 
 但是写入的History仍然不能破坏Commit的约束, 不能覆盖已经可能Commit的History.
-所以writer还要联系一个`read_quorum`, 进行一次读操作, 
-因为read操作保证读到Commit的History, 所以Writer在这个读到的History上追加新的Event再写入(paxos), 就不会造成已Commit的History丢失.
-如果不满足这个条件, 就不能继续(raft).
+因为这时如果直接写入一个很大的History, 可能大于一个已经Committed的History,
+而如果写入的History 不包含这个H₀, 就会导致后面的read_linear() 读不到H₀,
+从而导致Committed的数据丢失.
+
+所以writer在执行写入之前, 还要联系一个`read_quorum`, 进行一次读操作, 
+通过read_linear()读到当前Committed的History,
+再在这个读到的History上追加新的 Event, 再写入.
 
 这次读操作, 可以选择不同的`read_quorum`;
-如果看到更大的History, 那表示无法写入, 要终止.
+如果看到更大的History, 那表示无法写入, 要终止,
+因为写入的T一定不会被read_linear() 选择了.
+
+P1.1 保证了小于T的无法Commit,
+P1.2 保证了写入T的History不会覆盖Committed的数据;
+
+这时如果写入成功一个 `write_quorum`, 那么T之前的数据都包括在这次写入之内,
+T的History和T之前的History都保证了Commit的条件.
+
 
 ## 执行写入!
 
-执行具体的write过程相对简单, 直接将整个History 复制到一个`write_quorum`, 完成Commit.
+假设追加的操作是在T追加Event, 那么写入时只能写入 **小于T**的History,
+因为在P1.1阶段只保证了小于T可以安全Committed, 其他的History如果写入,
+有可能造成已Committed的数据的丢失
+
+TODO: 例子
+
+执行具体的write过程相对简单, 直接将History 复制到一个`write_quorum`, 完成Commit.
 
 
+## 协议描述
 
 为了简化设计, 我们假设每个writer新增
 
