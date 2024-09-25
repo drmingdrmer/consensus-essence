@@ -37,11 +37,11 @@ impl<T: Types> Acceptor<T> {
     /// **Classic Paxos** does not have to revert the `Time` but it could.
     pub(crate) fn handle_phase1_request(&mut self, commit_time: T::Time) -> (T::Time, T::History) {
         if self.is_committable(&commit_time) {
-            return (commit_time, self.history.visible(commit_time));
+            return (commit_time, self.history.history_view(commit_time));
         }
 
         self.forbidden_commit_time.insert(commit_time);
-        (commit_time, self.history.visible(commit_time))
+        (commit_time, self.history.history_view(commit_time))
     }
 
     pub(crate) fn handle_phase2_request(&mut self, history: T::History) -> bool {

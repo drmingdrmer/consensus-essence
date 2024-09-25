@@ -20,15 +20,11 @@ impl<T: Types> Default for LinearHistory<T> {
 impl<T: Types> History<T> for LinearHistory<T>
 where T::Time: Ord
 {
-    fn append(&mut self, time: T::Time, event: T::Event) {
-        todo!()
-    }
-
     fn get(&self, time: &T::Time) -> Option<&T::Event> {
         self.history.get(&time)
     }
 
-    fn visible(&self, time: T::Time) -> Self {
+    fn history_view(&self, time: T::Time) -> Self::View {
         let history = self.history.clone().into_iter().take_while(|(t, _)| t <= &time).collect();
         Self { history }
     }

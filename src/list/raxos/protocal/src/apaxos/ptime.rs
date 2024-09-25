@@ -1,18 +1,13 @@
 use std::fmt::Debug;
 use std::hash::Hash;
 
-use crate::apaxos::greater_equal::GreaterEqual;
-
 /// Pseudo time that is used in a distributed system.
 ///
-/// `Time`s can be compared with `==` or `>=`.
-/// But note that the **greater-or-equal** relation of `Time` is **NOT**
-/// transitive and must **NOT** form a cycle, i.e., `Time` is **NOT**
-/// `PartialOrd`. `Time` is a [DAG]:
+/// `Time` is [Partially-Ordered-set]:
 ///
 /// - Reflexivity: `a >= a`
 /// - Antisymmetry: `a >= b` and `b >= a` implies `a == b`
-/// - Anti-transitivity: `a >= b` and `b >= c` does **NOT** imply `a >= c`
+/// - Transitivity: `a >= b` and `b >= c` implies `a >= c`
 ///
 /// See: [Partially-Ordered-set]
 /// See: [DAG]
@@ -22,9 +17,9 @@ use crate::apaxos::greater_equal::GreaterEqual;
 /// [DAG]: https://en.wikipedia.org/wiki/Directed_acyclic_graph
 /// [Topological-order]: https://en.wikipedia.org/wiki/Topological_sorting
 pub trait Time:
-    Default + Debug + Clone + Copy + PartialEq + Eq + Hash + GreaterEqual + 'static
+    Default + Debug + Clone + Copy + PartialEq + Eq + Hash + PartialOrd + 'static
 {
 }
 
-impl<T> Time for T where T: Default + Debug + Clone + Copy + PartialEq + Eq + Hash + GreaterEqual + 'static
+impl<T> Time for T where T: Default + Debug + Clone + Copy + PartialEq + Eq + Hash + PartialOrd + 'static
 {}

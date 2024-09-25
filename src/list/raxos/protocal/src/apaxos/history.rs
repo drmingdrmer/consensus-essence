@@ -1,6 +1,8 @@
 use std::fmt::Debug;
 
 use crate::apaxos::greater_equal::GreaterEqual;
+use crate::apaxos::history_view::HistoryView;
+use crate::commonly_used::history_view::BasicView;
 use crate::Types;
 
 pub struct TimeEvent<T: Types> {
@@ -14,20 +16,29 @@ impl<T: Types> TimeEvent<T> {
     }
 }
 
+/// A [`History`] contains [`Time`] and [`Event`] in a Partially Ordered Set.
+///
+/// [`History`] is used by an [`Acceptor`] to store the [`Time`] and [`Event`]
+/// pairs.
+/// It represents the causal history of events in a distributed system.
 pub trait History<T: Types>
 where Self: Default + Debug + Clone
 {
-    fn append(&mut self, time: T::Time, event: T::Event);
+    /// The type representing a view of this History.
+    ///
+    /// Defaults to `BasicView<T, Self>` but can be overridden by implementors.
+    type View: HistoryView<T, Self> = BasicView<T, Self>;
 
     fn get(&self, time: &T::Time) -> Option<&T::Event>;
 
-    /// Return a sub set of the history that is visible at `time`.
-    ///
-    /// In other words, a sub set of TimeEvent that is less than or equal to
-    /// `time`.
-    fn visible(&self, time: T::Time) -> Self;
+    /// Returns a view(subset) of the history that is causally prior to or
+    /// concurrent with the given `time`.
+    fn history_view(&self, time: T::Time) -> Self::View;
 
-    /// Return the maximal [`Time`] and [`Event`] in the history.
+    // fn lower_bounds(&self, time: T::Time) -> Self;
+
+    /// Return an iterator over the maximal [`Time`] and [`Event`] pairs in the
+    /// history.
     ///
     /// `maximal` is defined as:
     /// g in P is a maximal element:
@@ -36,7 +47,10 @@ where Self: Default + Debug + Clone
     /// All `maximal` have no order between them.
     fn maximals(&self) -> impl Iterator<Item = (T::Time, T::Event)>;
 
-    fn maximal_times<'a>(&'a self) -> impl Iterator<Item = T::Time> + 'a {
+    fn do_merge(&mut self, other: Self);
+
+    fn maximal_times<'a>(&'a self) -> impl Iterator<Item = T::Time> + 'a
+    where Self: sealed::Seal {
         self.maximals().map(|(t, _)| t)
     }
 
@@ -50,13 +64,13 @@ where Self: Default + Debug + Clone
 
         for my_maximal in self.maximal_times() {
             if !other.greater_equal(&my_maximal) {
-                res.do_merge(self.visible(my_maximal));
+                res.do_merge(self.history_view(my_maximal));
             }
         }
 
         for other_maximal in other.maximal_times() {
             if !self.greater_equal(&other_maximal) {
-                res.do_merge(other.visible(other_maximal));
+                res.do_merge(other.history_view(other_maximal));
             }
         }
 
@@ -75,8 +89,6 @@ where Self: Default + Debug + Clone
         }
         false
     }
-
-    fn do_merge(&mut self, other: Self);
 }
 
 mod sealed {

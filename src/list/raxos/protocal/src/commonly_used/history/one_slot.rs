@@ -23,15 +23,11 @@ impl<T: Types> OneSlotHistory<T> {
 }
 
 impl<T: Types> History<T> for OneSlotHistory<T> {
-    fn append(&mut self, time: T::Time, event: T::Event) {
-        todo!()
-    }
-
     fn get(&self, time: &T::Time) -> Option<&T::Event> {
         todo!()
     }
 
-    fn visible(&self, time: T::Time) -> Self {
+    fn history_view(&self, time: T::Time) -> Self::View {
         todo!()
     }
 
