@@ -2,8 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::apaxos::errors::APError;
 use crate::apaxos::history::History;
-use crate::apaxos::history_view::HistoryView;
-use crate::commonly_used::history_view::BasicView;
+use crate::apaxos::history_view::BasicView;
 use crate::APaxos;
 use crate::QuorumSet;
 use crate::Transport;

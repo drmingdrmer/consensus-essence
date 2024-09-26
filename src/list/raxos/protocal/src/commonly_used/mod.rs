@@ -4,7 +4,6 @@
 //! used in paxos.
 
 pub mod history;
-pub mod history_view;
 pub mod quorum_set;
 pub mod time;
 pub mod transport;

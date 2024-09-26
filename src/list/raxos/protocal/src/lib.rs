@@ -12,7 +12,7 @@ use apaxos::ptime::Time;
 
 use crate::apaxos::decided::Decided;
 use crate::apaxos::history::History;
-use crate::commonly_used::history_view::BasicView;
+use crate::apaxos::history_view::BasicView;
 
 pub trait AcceptorId: Debug + Clone + Copy + Ord + 'static {}
 

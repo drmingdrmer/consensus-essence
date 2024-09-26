@@ -1,5 +1,4 @@
 use crate::apaxos::history::History;
-use crate::apaxos::history_view::HistoryView;
 use crate::Types;
 
 #[derive(Debug, Clone, Default)]

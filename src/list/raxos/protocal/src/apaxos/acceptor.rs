@@ -6,8 +6,7 @@ use validit::Validate;
 
 use crate::apaxos::decided::Decided;
 use crate::apaxos::history::History;
-use crate::apaxos::history_view::HistoryView;
-use crate::commonly_used::history_view::BasicView;
+use crate::apaxos::history_view::BasicView;
 use crate::Types;
 
 #[derive(Clone, Default, Debug)]

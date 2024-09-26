@@ -2,9 +2,7 @@ use phase1::Phase1;
 use phase2::Phase2;
 
 use crate::apaxos::errors::APError;
-use crate::apaxos::history::History;
-use crate::apaxos::history_view::HistoryView;
-use crate::commonly_used::history_view::BasicView;
+use crate::apaxos::history_view::BasicView;
 use crate::APaxos;
 use crate::Types;
 
@@ -46,7 +44,7 @@ impl<'a, T: Types> Proposer<'a, T> {
         }
     }
 
-    fn new_phase2(&mut self, mut maybe_committed: BasicView<T>) -> Phase2<T> {
+    fn new_phase2(&mut self, maybe_committed: BasicView<T>) -> Phase2<T> {
         // If the current time already has an event, no new event is added.
 
         let decided = match maybe_committed.append(self.event.clone()) {

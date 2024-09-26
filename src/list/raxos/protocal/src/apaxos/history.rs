@@ -1,21 +1,8 @@
 use std::fmt::Debug;
 
-use crate::apaxos::errors::APError;
 use crate::apaxos::errors::TimeRegression;
-use crate::apaxos::history_view::HistoryView;
-use crate::commonly_used::history_view::BasicView;
+use crate::apaxos::history_view::BasicView;
 use crate::Types;
-
-pub struct TimeEvent<T: Types> {
-    time: T::Time,
-    event: T::Event,
-}
-
-impl<T: Types> TimeEvent<T> {
-    pub fn new(time: T::Time, event: T::Event) -> Self {
-        Self { time, event }
-    }
-}
 
 /// A [`History`] contains [`Time`] and [`Event`] in a Partially Ordered Set.
 ///

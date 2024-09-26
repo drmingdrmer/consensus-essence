@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 
 use crate::apaxos::acceptor::Acceptor;
 use crate::apaxos::decided::Decided;
-use crate::commonly_used::history_view::BasicView;
+use crate::apaxos::history_view::BasicView;
 use crate::Transport;
 use crate::Types;
 

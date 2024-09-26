@@ -1,6 +1,10 @@
 use crate::apaxos::decided::Decided;
-use crate::apaxos::history::History;
 use crate::Types;
+
+// For doc reference
+#[rustfmt::skip]
+#[allow(unused_imports)]
+use crate::apaxos::history::History;
 
 /// Represents a snapshot view of a [`History`] up to a specific time.
 ///
@@ -9,7 +13,24 @@ use crate::Types;
 /// "view time".
 ///
 /// This trait is used by a [`Proposer`] to represent the system state it sees.
-pub trait HistoryView<T: Types> {
+#[derive(Debug, Clone, Default)]
+pub struct BasicView<T>
+where T: Types
+{
+    current_time: T::Time,
+    history: T::History,
+}
+
+impl<T> BasicView<T>
+where T: Types
+{
+    pub fn new(current_time: T::Time, history: T::History) -> Self {
+        Self {
+            current_time,
+            history,
+        }
+    }
+
     /// Returns the "current" time of this snapshot view.
     ///
     /// This time represents the **greatest** single time.
@@ -19,7 +40,9 @@ pub trait HistoryView<T: Types> {
     /// Note: The current time does not necessarily have to be an actual event
     /// time present in this History. It can be any valid time that defines
     /// the causal "cut" for this snapshot view.
-    fn current_time(&self) -> T::Time;
+    pub fn current_time(&self) -> T::Time {
+        self.current_time
+    }
 
     /// Attempts to append an [`Event`] at the current time.
     ///
@@ -28,7 +51,17 @@ pub trait HistoryView<T: Types> {
     ///
     /// This method should return an `Err` if there is already an [`Event`] at
     /// the ([`current_time()`](Self::current_time)).
-    fn append(self, event: T::Event) -> Result<Decided<T>, Decided<T>>;
+    pub fn append(mut self, event: T::Event) -> Result<Decided<T>, Decided<T>> {
+        if let Some(_ev) = self.history.get(&self.current_time) {
+            //
+        } else {
+            self.history.append(self.current_time, event).unwrap();
+        }
 
-    fn into_history(self) -> T::History;
+        Ok(Decided::new(self.current_time, self.into_history()))
+    }
+
+    pub fn into_history(self) -> T::History {
+        self.history
+    }
 }
