@@ -8,7 +8,7 @@
 //!   the one with max `v_ballot`.
 
 use crate::commonly_used::history::linear::LinearHistory;
-use crate::commonly_used::history::linear::SINGLE_LOG;
+use crate::commonly_used::history::linear::SINGLE_VALUE;
 use crate::commonly_used::quorum_set::majority::Majority;
 use crate::commonly_used::transport::DirectCall;
 use crate::Types;
@@ -20,9 +20,9 @@ struct Paxos {}
 impl Types for Paxos {
     type Time = u64;
     type Event = String;
-    type History = LinearHistory<Paxos, { SINGLE_LOG }>;
-    type QuorumSet = Majority<Paxos>;
-    type Transport = DirectCall<Paxos>;
+    type History = LinearHistory<Self, { SINGLE_VALUE }>;
+    type QuorumSet = Majority<Self>;
+    type Transport = DirectCall<Self>;
 }
 
 #[cfg(test)]

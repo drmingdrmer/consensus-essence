@@ -55,18 +55,6 @@ where
     /// All `maximal` have no order between them.
     fn maximals(&self) -> impl Iterator<Item = (T::Time, T::Event)>;
 
-    fn do_merge(&mut self, other: Self);
-
-    fn maximal_times<'a>(&'a self) -> impl Iterator<Item = T::Time> + 'a
-    where Self: sealed::Seal {
-        self.maximals().map(|(t, _)| t)
-    }
-
-    fn merge_view(&mut self, view: HistoryView<T>)
-    where Self: sealed::Seal {
-        self.merge(view.into_history());
-    }
-
     /// Merge two [`History`]
     ///
     /// Note that if there are `maximal` that have an order, the smaller one
@@ -90,6 +78,13 @@ where
         }
 
         *self = res;
+    }
+
+    fn do_merge(&mut self, other: Self);
+
+    fn maximal_times<'a>(&'a self) -> impl Iterator<Item = T::Time> + 'a
+    where Self: sealed::Seal {
+        self.maximals().map(|(t, _)| t)
     }
 
     /// Check if a [`History`] is greater or equal to a given time.

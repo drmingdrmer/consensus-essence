@@ -4,8 +4,8 @@ use crate::apaxos::history::History;
 use crate::Types;
 
 pub type Mode = bool;
-pub const SINGLE_LOG: Mode = false;
-pub const MULTI_LOG: Mode = true;
+pub const SINGLE_VALUE: Mode = false;
+pub const MULTI_VALUE: Mode = true;
 
 #[derive(Clone, Debug)]
 pub struct LinearHistory<T: Types, const MODE: Mode> {
@@ -43,22 +43,22 @@ where
     T::Time: Ord,
 {
     fn do_append(&mut self, time: T::Time, event: T::Event) {
-        // In a single log mode, it disallows to append new event if there is already
-        // one. Because the history can not be changed.
+        // In a single value mode(such as classic paxos),
+        // it disallows to append new event if there is already one.
+        // Because the history can not be changed.
         // In such case, just use the last value.
-        match MODE {
-            SINGLE_LOG => {
-                if let Some(last) = self.time_events.last_key_value() {
-                    let v = last.1.clone();
-                    self.time_events.insert(time, v);
+        let ev = match MODE {
+            SINGLE_VALUE => {
+                if let Some((_t, ev)) = self.time_events.last_key_value() {
+                    ev.clone()
                 } else {
-                    self.time_events.insert(time, event);
+                    event
                 }
             }
-            MULTI_LOG => {
-                self.time_events.insert(time, event);
-            }
-        }
+            MULTI_VALUE => event,
+        };
+
+        self.time_events.insert(time, ev);
     }
 
     fn get(&self, time: &T::Time) -> Option<&T::Event> {
