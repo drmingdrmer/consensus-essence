@@ -1,28 +1,45 @@
+use crate::apaxos::decided::Decided;
 use crate::apaxos::history::History;
 use crate::apaxos::history_view::HistoryView;
 use crate::Types;
 
-pub struct BasicView<T, H>
-where
-    T: Types,
-    H: History<T>,
+#[derive(Debug, Clone, Default)]
+pub struct BasicView<T>
+where T: Types
 {
     current_time: T::Time,
-    history: H,
+    history: T::History,
 }
 
-impl<T, H> HistoryView<T, H> for BasicView<T, H>
-where
-    T: Types,
-    H: History<T>,
+impl<T> BasicView<T>
+where T: Types
+{
+    pub fn new(current_time: T::Time, history: T::History) -> Self {
+        Self {
+            current_time,
+            history,
+        }
+    }
+}
+
+impl<T> HistoryView<T> for BasicView<T>
+where T: Types
 {
     fn current_time(&self) -> T::Time {
         self.current_time
     }
 
-    fn append(self, event: T::Event) -> Result<H, H> {
-        let mut history = self.history;
-        history.do_merge(H::new().append(self.current_time, event));
-        history
+    fn append(mut self, event: T::Event) -> Result<Decided<T>, Decided<T>> {
+        if let Some(_ev) = self.history.get(&self.current_time) {
+            //
+        } else {
+            self.history.append(self.current_time, event).unwrap();
+        }
+
+        Ok(Decided::new(self.current_time, self.into_history()))
+    }
+
+    fn into_history(self) -> T::History {
+        self.history
     }
 }

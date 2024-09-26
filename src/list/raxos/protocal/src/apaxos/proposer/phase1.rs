@@ -2,6 +2,8 @@ use std::collections::BTreeMap;
 
 use crate::apaxos::errors::APError;
 use crate::apaxos::history::History;
+use crate::apaxos::history_view::HistoryView;
+use crate::commonly_used::history_view::BasicView;
 use crate::APaxos;
 use crate::QuorumSet;
 use crate::Transport;
@@ -28,7 +30,7 @@ pub struct Phase1<'a, T: Types> {
 }
 
 impl<'a, T: Types> Phase1<'a, T> {
-    pub fn run(mut self) -> Result<T::History, APError<T>> {
+    pub fn run(mut self) -> Result<BasicView<T>, APError<T>> {
         let apaxos = &mut self.apaxos;
 
         let mut sent = 0;
@@ -39,21 +41,22 @@ impl<'a, T: Types> Phase1<'a, T> {
         }
 
         for _ in 0..sent {
-            let (target, (greater_equal_time, history)) = self.apaxos.transport.recv_phase1_reply();
-            dbg!("received phase-1 reply", &target, &history);
-            if greater_equal_time != self.time {
+            let (target, res) = self.apaxos.transport.recv_phase1_reply();
+            dbg!("received phase-1 reply", &target, &res);
+            let Ok(view) = res else {
                 // Phase-1 request is rejected.
                 continue;
-            }
+            };
 
             self.granted.insert(target, ());
-            self.previously_accepted.merge(history);
+            self.previously_accepted.merge(view.into_history());
 
             let is_read_quorum =
                 self.apaxos.quorum_set.is_read_quorum(self.granted.keys().copied());
 
             if is_read_quorum {
-                return Ok(self.previously_accepted);
+                let view = BasicView::new(self.time, self.previously_accepted);
+                return Ok(view);
             }
         }
 

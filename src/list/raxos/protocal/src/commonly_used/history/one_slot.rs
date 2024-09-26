@@ -22,12 +22,18 @@ impl<T: Types> OneSlotHistory<T> {
     }
 }
 
-impl<T: Types> History<T> for OneSlotHistory<T> {
+impl<T> History<T> for OneSlotHistory<T>
+where T: Types<History = Self>
+{
+    fn do_append(&mut self, time: T::Time, event: T::Event) {
+        todo!()
+    }
+
     fn get(&self, time: &T::Time) -> Option<&T::Event> {
         todo!()
     }
 
-    fn history_view(&self, time: T::Time) -> Self::View {
+    fn lower_bounds(&self, time: T::Time) -> Self {
         todo!()
     }
 

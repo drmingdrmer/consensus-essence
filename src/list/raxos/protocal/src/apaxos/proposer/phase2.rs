@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
 
+use crate::apaxos::decided::Decided;
 use crate::apaxos::errors::APError;
+use crate::commonly_used::history_view::BasicView;
 use crate::APaxos;
 use crate::QuorumSet;
 use crate::Transport;
@@ -12,7 +14,7 @@ pub struct Phase2<'a, T: Types> {
     /// The time of the Proposer that running phase1.
     pub time: T::Time,
 
-    pub decided: T::History,
+    pub decided: Decided<T>,
 
     pub accepted: BTreeMap<T::AcceptorId, ()>,
 }
@@ -31,13 +33,15 @@ impl<'a, T: Types> Phase2<'a, T> {
         }
 
         for _ in 0..sent {
-            let (target, is_accepted) = apaxos.transport.recv_phase2_reply();
-            if is_accepted {
-                self.accepted.insert(target, ());
+            let (target, res) = apaxos.transport.recv_phase2_reply();
+            if res.is_err() {
+                continue;
             }
 
+            self.accepted.insert(target, ());
+
             if apaxos.quorum_set.is_write_quorum(self.accepted.keys().cloned()) {
-                return Ok(self.decided);
+                return Ok(self.decided.into_history());
             }
         }
 

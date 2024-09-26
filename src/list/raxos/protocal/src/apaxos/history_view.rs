@@ -1,3 +1,4 @@
+use crate::apaxos::decided::Decided;
 use crate::apaxos::history::History;
 use crate::Types;
 
@@ -8,9 +9,7 @@ use crate::Types;
 /// "view time".
 ///
 /// This trait is used by a [`Proposer`] to represent the system state it sees.
-pub trait HistoryView<T: Types, H>
-where H: History<T>
-{
+pub trait HistoryView<T: Types> {
     /// Returns the "current" time of this snapshot view.
     ///
     /// This time represents the **greatest** single time.
@@ -22,13 +21,14 @@ where H: History<T>
     /// the causal "cut" for this snapshot view.
     fn current_time(&self) -> T::Time;
 
-    /// Attempts to append an [`Event`] at the current time to create a new
-    /// [`History`].
+    /// Attempts to append an [`Event`] at the current time.
     ///
-    /// The created new [`History`] instance that includes all
-    /// events from this view, plus the new event at the current view time.
+    /// The updated instance should include all events from this view, plus the
+    /// new event at the current view time.
     ///
     /// This method should return an `Err` if there is already an [`Event`] at
     /// the ([`current_time()`](Self::current_time)).
-    fn append(self, event: T::Event) -> Result<H, H>;
+    fn append(self, event: T::Event) -> Result<Decided<T>, Decided<T>>;
+
+    fn into_history(self) -> T::History;
 }

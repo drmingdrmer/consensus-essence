@@ -10,7 +10,9 @@ use std::fmt::Debug;
 
 use apaxos::ptime::Time;
 
+use crate::apaxos::decided::Decided;
 use crate::apaxos::history::History;
+use crate::commonly_used::history_view::BasicView;
 
 pub trait AcceptorId: Debug + Clone + Copy + Ord + 'static {}
 
@@ -52,10 +54,10 @@ where Self: Default + Debug + Clone + Sized + 'static
 
 pub trait Transport<T: Types> {
     fn send_phase1_request(&mut self, target: T::AcceptorId, t: T::Time);
-    fn recv_phase1_reply(&mut self) -> (T::AcceptorId, (T::Time, T::History));
+    fn recv_phase1_reply(&mut self) -> (T::AcceptorId, Result<BasicView<T>, T::Time>);
 
-    fn send_phase2_request(&mut self, target: T::AcceptorId, history: T::History);
-    fn recv_phase2_reply(&mut self) -> (T::AcceptorId, bool);
+    fn send_phase2_request(&mut self, target: T::AcceptorId, decided: Decided<T>);
+    fn recv_phase2_reply(&mut self) -> (T::AcceptorId, Result<(), T::Time>);
 }
 
 pub trait QuorumSet<T: Types> {

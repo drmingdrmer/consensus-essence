@@ -4,8 +4,10 @@ use std::fmt::Debug;
 
 use validit::Validate;
 
-use crate::apaxos::greater_equal::GreaterEqual;
+use crate::apaxos::decided::Decided;
 use crate::apaxos::history::History;
+use crate::apaxos::history_view::HistoryView;
+use crate::commonly_used::history_view::BasicView;
 use crate::Types;
 
 #[derive(Clone, Default, Debug)]
@@ -27,53 +29,54 @@ impl<T: Types> Acceptor<T> {
     /// Handle the phase-1 request from a [`Proposer`], i.e., set up a new
     /// [`Time`] point.
     ///
-    /// Returns the `Time` before handling the request and the updated
-    /// [`Acceptor`] itself.
+    /// Returns a history view for appending new event if it is allowed to
+    /// commit. Otherwise, returns the [`Time`] that disables this proposal.
     ///
     /// The returned `Time` will be used to revert the `Time` if the
     /// [`Proposer`] decide to cancel this round of consensus algorithm.
     /// For example, **2PC** will revert the `Time` if the coordinator receives
     /// conflicting votes(otherwise other [`Proposer`] can not proceed). But
     /// **Classic Paxos** does not have to revert the `Time` but it could.
-    pub(crate) fn handle_phase1_request(&mut self, commit_time: T::Time) -> (T::Time, T::History) {
-        if self.is_committable(&commit_time) {
-            return (commit_time, self.history.history_view(commit_time));
-        }
+    pub(crate) fn handle_phase1_request(
+        &mut self,
+        commit_time: T::Time,
+    ) -> Result<BasicView<T>, T::Time> {
+        self.check_committable(&commit_time)?;
 
-        self.forbidden_commit_time.insert(commit_time);
-        (commit_time, self.history.history_view(commit_time))
+        self.forbid_smaller_commit_time(commit_time);
+
+        Ok(self.history.history_view(commit_time))
     }
 
-    pub(crate) fn handle_phase2_request(&mut self, history: T::History) -> bool {
-        dbg!("handle_phase2_request", &history);
+    pub(crate) fn handle_phase2_request(&mut self, decided: Decided<T>) -> Result<(), T::Time> {
+        dbg!("handle_phase2_request", &decided);
 
-        {
-            let mut maximals = history.maximal_times();
-            let new_written_time = maximals.next().unwrap();
+        let new_written_time = decided.current_time();
+        self.check_committable(&new_written_time)?;
 
-            assert!(
-                maximals.next().is_none(),
-                "A proposer commit a history reachable from only one single time"
-            );
+        self.history.merge(decided.into_history());
 
-            if self.is_committable(&new_written_time) {
-                return false;
+        Ok(())
+    }
+
+    fn forbid_smaller_commit_time(&mut self, time: T::Time) {
+        self.forbidden_commit_time.insert(time);
+
+        for t in self.forbidden_commit_time.clone().iter() {
+            if t < &time {
+                self.forbidden_commit_time.remove(t);
             }
         }
-
-        self.history.merge(history);
-
-        true
     }
 
     /// Check it is allowed to commit at the specified time.
-    fn is_committable(&self, time: &T::Time) -> bool {
+    fn check_committable(&self, time: &T::Time) -> Result<(), T::Time> {
         for t in &self.forbidden_commit_time {
-            if t.is_gt(time) {
-                return false;
+            if t > time {
+                return Err(*t);
             }
         }
 
-        true
+        Ok(())
     }
 }

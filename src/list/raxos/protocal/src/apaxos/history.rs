@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 
-use crate::apaxos::greater_equal::GreaterEqual;
+use crate::apaxos::errors::APError;
+use crate::apaxos::errors::TimeRegression;
 use crate::apaxos::history_view::HistoryView;
 use crate::commonly_used::history_view::BasicView;
 use crate::Types;
@@ -21,21 +22,41 @@ impl<T: Types> TimeEvent<T> {
 /// [`History`] is used by an [`Acceptor`] to store the [`Time`] and [`Event`]
 /// pairs.
 /// It represents the causal history of events in a distributed system.
-pub trait History<T: Types>
-where Self: Default + Debug + Clone
+pub trait History<T>
+where
+    T: Types<History = Self>,
+    Self: Default + Debug + Clone,
 {
-    /// The type representing a view of this History.
+    /// Append a new [`Event`] at a specific [`Time`] in the history.
     ///
-    /// Defaults to `BasicView<T, Self>` but can be overridden by implementors.
-    type View: HistoryView<T, Self> = BasicView<T, Self>;
+    /// The [`Time`] must not smaller than any of the
+    /// [`maximal_times()`](Self::maximal_times).
+    fn append(&mut self, time: T::Time, event: T::Event) -> Result<(), TimeRegression<T>> {
+        for max_time in self.maximal_times() {
+            if time < max_time {
+                return Err(TimeRegression::new(time, max_time));
+            }
+        }
+
+        self.do_append(time, event);
+
+        Ok(())
+    }
+
+    fn do_append(&mut self, time: T::Time, event: T::Event);
 
     fn get(&self, time: &T::Time) -> Option<&T::Event>;
 
     /// Returns a view(subset) of the history that is causally prior to or
     /// concurrent with the given `time`.
-    fn history_view(&self, time: T::Time) -> Self::View;
+    fn history_view(&self, time: T::Time) -> BasicView<T> {
+        let lower = self.lower_bounds(time);
+        BasicView::new(time, lower)
+    }
 
-    // fn lower_bounds(&self, time: T::Time) -> Self;
+    /// Return a new instance in which every [`Time`] in it is causally prior to
+    /// the given `time`.
+    fn lower_bounds(&self, time: T::Time) -> Self;
 
     /// Return an iterator over the maximal [`Time`] and [`Event`] pairs in the
     /// history.
@@ -54,6 +75,11 @@ where Self: Default + Debug + Clone
         self.maximals().map(|(t, _)| t)
     }
 
+    fn merge_view(&mut self, view: BasicView<T>)
+    where Self: sealed::Seal {
+        self.merge(view.into_history());
+    }
+
     /// Merge two [`History`]
     ///
     /// Note that if there are `maximal` that have an order, the smaller one
@@ -63,15 +89,17 @@ where Self: Default + Debug + Clone
         let mut res = Self::default();
 
         for my_maximal in self.maximal_times() {
-            if !other.greater_equal(&my_maximal) {
-                res.do_merge(self.history_view(my_maximal));
+            if other.greater_equal(my_maximal) {
+                continue;
             }
+            res.do_merge(self.lower_bounds(my_maximal));
         }
 
         for other_maximal in other.maximal_times() {
-            if !self.greater_equal(&other_maximal) {
-                res.do_merge(other.history_view(other_maximal));
+            if self.greater_equal(other_maximal) {
+                continue;
             }
+            res.do_merge(other.lower_bounds(other_maximal));
         }
 
         *self = res;
@@ -81,9 +109,9 @@ where Self: Default + Debug + Clone
     ///
     /// In other word, if there is a [`Time`] in this history that is greater or
     /// equal the given time.
-    fn greater_equal(&self, t: &T::Time) -> bool {
+    fn greater_equal(&self, t: T::Time) -> bool {
         for max_time in self.maximal_times() {
-            if max_time.greater_equal(t) {
+            if max_time >= t {
                 return true;
             }
         }

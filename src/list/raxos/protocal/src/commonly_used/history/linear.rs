@@ -5,32 +5,39 @@ use crate::Types;
 
 #[derive(Clone, Debug)]
 struct LinearHistory<T: Types> {
-    history: BTreeMap<T::Time, T::Event>,
+    time_events: BTreeMap<T::Time, T::Event>,
 }
 
 impl<T: Types> Default for LinearHistory<T> {
     fn default() -> Self {
         Self {
-            history: BTreeMap::new(),
+            time_events: BTreeMap::new(),
         }
     }
 }
 
 /// Linear history requires the Time to be totally ordered.
-impl<T: Types> History<T> for LinearHistory<T>
-where T::Time: Ord
+impl<T> History<T> for LinearHistory<T>
+where
+    T: Types<History = Self>,
+    T::Time: Ord,
 {
-    fn get(&self, time: &T::Time) -> Option<&T::Event> {
-        self.history.get(&time)
+    fn do_append(&mut self, time: T::Time, event: T::Event) {
+        self.time_events.insert(time, event);
     }
 
-    fn history_view(&self, time: T::Time) -> Self::View {
-        let history = self.history.clone().into_iter().take_while(|(t, _)| t <= &time).collect();
-        Self { history }
+    fn get(&self, time: &T::Time) -> Option<&T::Event> {
+        self.time_events.get(&time)
+    }
+
+    fn lower_bounds(&self, time: T::Time) -> Self {
+        let time_events =
+            self.time_events.clone().into_iter().take_while(|(t, _)| t <= &time).collect();
+        Self { time_events }
     }
 
     fn maximals(&self) -> impl Iterator<Item = (T::Time, T::Event)> {
-        let last = self.history.iter().last();
+        let last = self.time_events.iter().last();
         last.into_iter().map(|(t, e)| (*t, e.clone()))
     }
 
