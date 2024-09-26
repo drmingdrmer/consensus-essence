@@ -13,6 +13,8 @@ impl<T> Decided<T>
 where T: Types
 {
     pub fn new(current_time: T::Time, history: T::History) -> Self {
+        dbg!(current_time);
+        dbg!(&history);
         debug_assert!(history.get(&current_time).is_some());
         Self {
             current_time,

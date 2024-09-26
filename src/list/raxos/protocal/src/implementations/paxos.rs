@@ -7,7 +7,8 @@
 //! - To rebuild a **maybe committed** value with [`Distribute`], it just use
 //!   the one with max `v_ballot`.
 
-use crate::commonly_used::history::one_slot::OneSlotHistory;
+use crate::commonly_used::history::linear::LinearHistory;
+use crate::commonly_used::history::linear::SINGLE_LOG;
 use crate::commonly_used::quorum_set::majority::Majority;
 use crate::commonly_used::transport::DirectCall;
 use crate::Types;
@@ -19,7 +20,7 @@ struct Paxos {}
 impl Types for Paxos {
     type Time = u64;
     type Event = String;
-    type History = OneSlotHistory<Paxos>;
+    type History = LinearHistory<Paxos, { SINGLE_LOG }>;
     type QuorumSet = Majority<Paxos>;
     type Transport = DirectCall<Paxos>;
 }
@@ -54,14 +55,14 @@ mod tests {
         let mut proposer = Proposer::new(&mut apaxos, 5, "hello".to_string());
         let committed = proposer.run()?;
 
-        assert_eq!(committed.value_time(), Some(5));
-        assert_eq!(committed.value().cloned(), Some(s("hello")));
+        assert_eq!(committed.latest_time(), Some(5));
+        assert_eq!(committed.latest_value(), Some(s("hello")));
 
         let mut proposer = Proposer::new(&mut apaxos, 6, "world".to_string());
         let committed = proposer.run()?;
 
-        assert_eq!(committed.value_time(), Some(5));
-        assert_eq!(committed.value().cloned(), Some(s("hello")));
+        assert_eq!(committed.latest_time(), Some(6));
+        assert_eq!(committed.latest_value(), Some(s("hello")));
 
         Ok(())
 

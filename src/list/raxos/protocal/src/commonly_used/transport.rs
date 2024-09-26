@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 
 use crate::apaxos::acceptor::Acceptor;
 use crate::apaxos::decided::Decided;
-use crate::apaxos::history_view::BasicView;
+use crate::apaxos::history_view::HistoryView;
 use crate::Transport;
 use crate::Types;
 
@@ -11,7 +11,7 @@ use crate::Types;
 pub struct DirectCall<T: Types> {
     acceptors: BTreeMap<T::AcceptorId, Acceptor<T>>,
 
-    p1_replies: VecDeque<(T::AcceptorId, Result<BasicView<T>, T::Time>)>,
+    p1_replies: VecDeque<(T::AcceptorId, Result<HistoryView<T>, T::Time>)>,
     p2_replies: VecDeque<(T::AcceptorId, Result<(), T::Time>)>,
 }
 
@@ -33,7 +33,7 @@ impl<T: Types> Transport<T> for DirectCall<T> {
         self.p1_replies.push_back((target, reply));
     }
 
-    fn recv_phase1_reply(&mut self) -> (T::AcceptorId, Result<BasicView<T>, T::Time>) {
+    fn recv_phase1_reply(&mut self) -> (T::AcceptorId, Result<HistoryView<T>, T::Time>) {
         self.p1_replies.pop_front().unwrap()
     }
 

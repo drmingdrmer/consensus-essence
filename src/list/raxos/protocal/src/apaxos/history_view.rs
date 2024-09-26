@@ -4,24 +4,26 @@ use crate::Types;
 // For doc reference
 #[rustfmt::skip]
 #[allow(unused_imports)]
-use crate::apaxos::history::History;
+use crate::apaxos::{
+    history::History,
+    proposer::Proposer
+};
 
 /// Represents a snapshot view of a [`History`] up to a specific time.
 ///
-/// This trait extends the [`History`] trait to represent a subset of the
-/// history that includes all time and events **before or equal** a specific
-/// "view time".
+/// It represents a subset of the history that includes all time and events
+/// **before or equal** a specific "time".
 ///
 /// This trait is used by a [`Proposer`] to represent the system state it sees.
 #[derive(Debug, Clone, Default)]
-pub struct BasicView<T>
+pub struct HistoryView<T>
 where T: Types
 {
     current_time: T::Time,
     history: T::History,
 }
 
-impl<T> BasicView<T>
+impl<T> HistoryView<T>
 where T: Types
 {
     pub fn new(current_time: T::Time, history: T::History) -> Self {

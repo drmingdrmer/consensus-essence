@@ -6,7 +6,7 @@ use validit::Validate;
 
 use crate::apaxos::decided::Decided;
 use crate::apaxos::history::History;
-use crate::apaxos::history_view::BasicView;
+use crate::apaxos::history_view::HistoryView;
 use crate::Types;
 
 #[derive(Clone, Default, Debug)]
@@ -39,7 +39,7 @@ impl<T: Types> Acceptor<T> {
     pub(crate) fn handle_phase1_request(
         &mut self,
         commit_time: T::Time,
-    ) -> Result<BasicView<T>, T::Time> {
+    ) -> Result<HistoryView<T>, T::Time> {
         self.check_committable(&commit_time)?;
 
         self.forbid_smaller_commit_time(commit_time);

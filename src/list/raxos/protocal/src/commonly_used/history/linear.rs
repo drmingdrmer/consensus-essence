@@ -3,12 +3,32 @@ use std::collections::BTreeMap;
 use crate::apaxos::history::History;
 use crate::Types;
 
+pub type Mode = bool;
+pub const SINGLE_LOG: Mode = false;
+pub const MULTI_LOG: Mode = true;
+
 #[derive(Clone, Debug)]
-struct LinearHistory<T: Types> {
+pub struct LinearHistory<T: Types, const MODE: Mode> {
     time_events: BTreeMap<T::Time, T::Event>,
 }
 
-impl<T: Types> Default for LinearHistory<T> {
+impl<T: Types, const MODE: Mode> LinearHistory<T, MODE>
+where T::Time: Ord
+{
+    pub fn latest_time_value(&self) -> Option<(&T::Time, &T::Event)> {
+        self.time_events.last_key_value()
+    }
+
+    pub fn latest_time(&self) -> Option<T::Time> {
+        self.latest_time_value().map(|(t, _ev)| *t)
+    }
+
+    pub fn latest_value(&self) -> Option<T::Event> {
+        self.latest_time_value().map(|(_t, v)| v.clone())
+    }
+}
+
+impl<T: Types, const MODE: Mode> Default for LinearHistory<T, MODE> {
     fn default() -> Self {
         Self {
             time_events: BTreeMap::new(),
@@ -17,13 +37,28 @@ impl<T: Types> Default for LinearHistory<T> {
 }
 
 /// Linear history requires the Time to be totally ordered.
-impl<T> History<T> for LinearHistory<T>
+impl<T, const MODE: Mode> History<T> for LinearHistory<T, MODE>
 where
     T: Types<History = Self>,
     T::Time: Ord,
 {
     fn do_append(&mut self, time: T::Time, event: T::Event) {
-        self.time_events.insert(time, event);
+        // In a single log mode, it disallows to append new event if there is already
+        // one. Because the history can not be changed.
+        // In such case, just use the last value.
+        match MODE {
+            SINGLE_LOG => {
+                if let Some(last) = self.time_events.last_key_value() {
+                    let v = last.1.clone();
+                    self.time_events.insert(time, v);
+                } else {
+                    self.time_events.insert(time, event);
+                }
+            }
+            MULTI_LOG => {
+                self.time_events.insert(time, event);
+            }
+        }
     }
 
     fn get(&self, time: &T::Time) -> Option<&T::Event> {

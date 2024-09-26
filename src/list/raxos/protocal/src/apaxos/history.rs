@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use crate::apaxos::errors::TimeRegression;
-use crate::apaxos::history_view::BasicView;
+use crate::apaxos::history_view::HistoryView;
 use crate::Types;
 
 /// A [`History`] contains [`Time`] and [`Event`] in a Partially Ordered Set.
@@ -36,9 +36,9 @@ where
 
     /// Returns a view(subset) of the history that is causally prior to or
     /// concurrent with the given `time`.
-    fn history_view(&self, time: T::Time) -> BasicView<T> {
+    fn history_view(&self, time: T::Time) -> HistoryView<T> {
         let lower = self.lower_bounds(time);
-        BasicView::new(time, lower)
+        HistoryView::new(time, lower)
     }
 
     /// Return a new instance in which every [`Time`] in it is causally prior to
@@ -62,7 +62,7 @@ where
         self.maximals().map(|(t, _)| t)
     }
 
-    fn merge_view(&mut self, view: BasicView<T>)
+    fn merge_view(&mut self, view: HistoryView<T>)
     where Self: sealed::Seal {
         self.merge(view.into_history());
     }
