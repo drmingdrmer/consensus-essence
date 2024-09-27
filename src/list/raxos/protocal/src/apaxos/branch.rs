@@ -1,4 +1,3 @@
-use crate::apaxos::decided::Decided;
 use crate::Types;
 
 // For doc reference
@@ -11,12 +10,15 @@ use crate::apaxos::{
 
 /// Indicate the [`Branch`] includes an event has been set at the head
 /// time.
-pub const HEAD_SET: bool = true;
+pub const HEAD_DECIDED: bool = true;
 
 /// Indicate the [`Branch`] **may** not include an event at the head
 /// time. Note that the head time is already in the internal history.
-pub const HEAD_UNSET: bool = false;
+pub const HEAD_UNDECIDED: bool = false;
 
+/// Whether the head time of a [`Branch`] has been set an event.
+///
+/// Note that before setting, there may already be an event at the head time.
 pub type HeadEventState = bool;
 
 /// Represents a single branch [`History`] that is reachable upto a designated
@@ -40,7 +42,7 @@ where T: Types
     history: T::History,
 }
 
-impl<T> Branch<T, HEAD_UNSET>
+impl<T> Branch<T, HEAD_UNDECIDED>
 where T: Types
 {
     pub fn new(head_time: T::Time, history: T::History) -> Self {
@@ -58,14 +60,14 @@ where T: Types
     pub fn add_event(
         mut self,
         event: T::Event,
-    ) -> Result<Branch<T, HEAD_SET>, Branch<T, HEAD_SET>> {
+    ) -> Result<Branch<T, HEAD_DECIDED>, Branch<T, HEAD_DECIDED>> {
         if let Some(_ev) = self.history.get(&self.head_time) {
             // Nothing to do
         } else {
             self.history.append(self.head_time, event).unwrap();
         }
 
-        Ok(Branch::<T, HEAD_SET> {
+        Ok(Branch::<T, HEAD_DECIDED> {
             head_time: self.head_time,
             history: self.history,
         })

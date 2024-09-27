@@ -2,6 +2,7 @@ use phase1::Phase1;
 use phase2::Phase2;
 
 use crate::apaxos::branch::Branch;
+use crate::apaxos::branch::HEAD_UNDECIDED;
 use crate::apaxos::errors::APError;
 use crate::APaxos;
 use crate::Types;
@@ -44,7 +45,7 @@ impl<'a, T: Types> Proposer<'a, T> {
         }
     }
 
-    fn new_phase2(&mut self, maybe_committed: Branch<T>) -> Phase2<T> {
+    fn new_phase2(&mut self, maybe_committed: Branch<T, HEAD_UNDECIDED>) -> Phase2<T> {
         // If the current time already has an event, no new event is added.
 
         let decided = match maybe_committed.add_event(self.event.clone()) {
@@ -60,7 +61,6 @@ impl<'a, T: Types> Proposer<'a, T> {
 
         Phase2 {
             apaxos: &mut self.apaxos,
-            time: self.time,
             decided,
             accepted: Default::default(),
         }

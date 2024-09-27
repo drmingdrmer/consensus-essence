@@ -10,9 +10,6 @@ use crate::Types;
 pub struct Phase2<'a, T: Types> {
     pub apaxos: &'a mut APaxos<T>,
 
-    /// The time of the Proposer that running phase1.
-    pub time: T::Time,
-
     pub decided: Decided<T>,
 
     pub accepted: BTreeMap<T::AcceptorId, ()>,

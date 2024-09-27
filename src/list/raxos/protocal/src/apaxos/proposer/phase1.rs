@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::apaxos::branch::Branch;
+use crate::apaxos::branch::HEAD_UNDECIDED;
 use crate::apaxos::errors::APError;
 use crate::apaxos::history::History;
 use crate::APaxos;
@@ -29,7 +30,7 @@ pub struct Phase1<'a, T: Types> {
 }
 
 impl<'a, T: Types> Phase1<'a, T> {
-    pub fn run(mut self) -> Result<Branch<T>, APError<T>> {
+    pub fn run(mut self) -> Result<Branch<T, { HEAD_UNDECIDED }>, APError<T>> {
         let apaxos = &mut self.apaxos;
 
         let mut sent = 0;

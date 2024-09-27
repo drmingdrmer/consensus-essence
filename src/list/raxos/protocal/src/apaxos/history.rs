@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 
 use crate::apaxos::branch::Branch;
+use crate::apaxos::branch::HEAD_UNDECIDED;
 use crate::apaxos::errors::TimeRegression;
 use crate::Types;
 
@@ -34,9 +35,9 @@ where
 
     fn get(&self, time: &T::Time) -> Option<&T::Event>;
 
-    /// Returns a view(subset) of the history that is causally prior to or
-    /// concurrent with the given `time`.
-    fn history_view(&self, time: T::Time) -> Branch<T> {
+    /// Returns a single head [`Branch`] of the history that is causally prior
+    /// to or concurrent with the given `time`.
+    fn branch(&self, time: T::Time) -> Branch<T, { HEAD_UNDECIDED }> {
         let lower = self.lower_bounds(time);
         Branch::new(time, lower)
     }
