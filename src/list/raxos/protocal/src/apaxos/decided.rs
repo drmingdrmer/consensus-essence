@@ -1,32 +1,4 @@
-use crate::apaxos::history::History;
-use crate::Types;
+use crate::apaxos::focal_history::FocalHistory;
+use crate::apaxos::focal_history::WITH_CURRENT_EVENT;
 
-#[derive(Debug, Clone, Default)]
-pub struct Decided<T>
-where T: Types
-{
-    current_time: T::Time,
-    history: T::History,
-}
-
-impl<T> Decided<T>
-where T: Types
-{
-    pub fn new(current_time: T::Time, history: T::History) -> Self {
-        dbg!(current_time);
-        dbg!(&history);
-        debug_assert!(history.get(&current_time).is_some());
-        Self {
-            current_time,
-            history,
-        }
-    }
-
-    pub fn current_time(&self) -> T::Time {
-        self.current_time
-    }
-
-    pub fn into_history(self) -> T::History {
-        self.history
-    }
-}
+pub type Decided<T> = FocalHistory<T, { WITH_CURRENT_EVENT }>;

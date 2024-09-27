@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use crate::apaxos::errors::APError;
+use crate::apaxos::focal_history::FocalHistory;
 use crate::apaxos::history::History;
-use crate::apaxos::history_view::HistoryView;
 use crate::APaxos;
 use crate::QuorumSet;
 use crate::Transport;
@@ -29,7 +29,7 @@ pub struct Phase1<'a, T: Types> {
 }
 
 impl<'a, T: Types> Phase1<'a, T> {
-    pub fn run(mut self) -> Result<HistoryView<T>, APError<T>> {
+    pub fn run(mut self) -> Result<FocalHistory<T>, APError<T>> {
         let apaxos = &mut self.apaxos;
 
         let mut sent = 0;
@@ -54,7 +54,7 @@ impl<'a, T: Types> Phase1<'a, T> {
                 self.apaxos.quorum_set.is_read_quorum(self.granted.keys().copied());
 
             if is_read_quorum {
-                let view = HistoryView::new(self.time, self.previously_accepted);
+                let view = FocalHistory::new(self.time, self.previously_accepted);
                 return Ok(view);
             }
         }

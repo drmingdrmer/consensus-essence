@@ -5,8 +5,8 @@ use std::fmt::Debug;
 use validit::Validate;
 
 use crate::apaxos::decided::Decided;
+use crate::apaxos::focal_history::FocalHistory;
 use crate::apaxos::history::History;
-use crate::apaxos::history_view::HistoryView;
 use crate::Types;
 
 #[derive(Clone, Default, Debug)]
@@ -39,7 +39,7 @@ impl<T: Types> Acceptor<T> {
     pub(crate) fn handle_phase1_request(
         &mut self,
         commit_time: T::Time,
-    ) -> Result<HistoryView<T>, T::Time> {
+    ) -> Result<FocalHistory<T>, T::Time> {
         self.check_committable(&commit_time)?;
 
         self.forbid_smaller_commit_time(commit_time);
@@ -50,7 +50,7 @@ impl<T: Types> Acceptor<T> {
     pub(crate) fn handle_phase2_request(&mut self, decided: Decided<T>) -> Result<(), T::Time> {
         dbg!("handle_phase2_request", &decided);
 
-        let new_written_time = decided.current_time();
+        let new_written_time = decided.head_time();
         self.check_committable(&new_written_time)?;
 
         self.history.merge(decided.into_history());
