@@ -15,9 +15,9 @@ use crate::apaxos::branch::HEAD_UNDECIDED;
 use crate::apaxos::decided::Decided;
 use crate::apaxos::history::History;
 
-pub trait AcceptorId: Debug + Clone + Copy + Ord + 'static {}
+pub trait AcceptorId: Debug + Clone + Copy + Ord + Send + 'static {}
 
-pub trait Value: Debug + Clone + 'static {}
+pub trait Value: Debug + Clone + Send + 'static {}
 
 /// Defines types that are used in the Abstract-Paxos algorithm.
 pub trait Types
@@ -53,9 +53,11 @@ where Self: Default + Debug + Clone + Sized + 'static
     type Transport: Transport<Self>;
 }
 
+#[async_trait::async_trait]
 pub trait Transport<T: Types> {
     fn send_phase1_request(&mut self, target: T::AcceptorId, t: T::Time);
-    fn recv_phase1_reply(
+
+    async fn recv_phase1_reply(
         &mut self,
     ) -> (
         T::AcceptorId,
@@ -63,7 +65,8 @@ pub trait Transport<T: Types> {
     );
 
     fn send_phase2_request(&mut self, target: T::AcceptorId, decided: Decided<T>);
-    fn recv_phase2_reply(&mut self) -> (T::AcceptorId, Result<(), T::Time>);
+
+    async fn recv_phase2_reply(&mut self) -> (T::AcceptorId, Result<(), T::Time>);
 }
 
 pub trait QuorumSet<T: Types> {

@@ -44,7 +44,7 @@ impl<T: Types> Acceptor<T> {
     }
 
     pub(crate) fn handle_phase2_request(&mut self, decided: Decided<T>) -> Result<(), T::Time> {
-        dbg!("handle_phase2_request", &decided);
+        // dbg!("handle_phase2_request", &decided);
 
         let head_time = decided.head_time();
         self.check_committable(&head_time)?;

@@ -29,9 +29,9 @@ impl<'a, T: Types> Proposer<'a, T> {
         }
     }
 
-    pub fn run(&mut self) -> Result<T::History, APError<T>> {
-        let maybe_committed = self.new_phase1().run()?;
-        let committed = self.new_phase2(maybe_committed).run()?;
+    pub async fn run(&mut self) -> Result<T::History, APError<T>> {
+        let maybe_committed = self.new_phase1().run().await?;
+        let committed = self.new_phase2(maybe_committed).run().await?;
 
         Ok(committed)
     }

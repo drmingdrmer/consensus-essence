@@ -16,7 +16,7 @@ pub struct Phase2<'a, T: Types> {
 }
 
 impl<'a, T: Types> Phase2<'a, T> {
-    pub fn run(mut self) -> Result<T::History, APError<T>> {
+    pub async fn run(mut self) -> Result<T::History, APError<T>> {
         let apaxos = &mut self.apaxos;
 
         let mut sent = 0;
@@ -29,7 +29,7 @@ impl<'a, T: Types> Phase2<'a, T> {
         }
 
         for _ in 0..sent {
-            let (target, res) = apaxos.transport.recv_phase2_reply();
+            let (target, res) = apaxos.transport.recv_phase2_reply().await;
             if res.is_err() {
                 continue;
             }

@@ -30,14 +30,16 @@ impl<T: Types> DirectCall<T> {
     }
 }
 
+#[async_trait::async_trait]
 impl<T: Types> Transport<T> for DirectCall<T> {
     fn send_phase1_request(&mut self, target: T::AcceptorId, t: T::Time) {
-        dbg!("send_phase_request", target, t);
+        // dbg!("send_phase_request", target, t);
+
         let reply = self.acceptors.get_mut(&target).unwrap().handle_phase1_request(t);
         self.p1_replies.push_back((target, reply));
     }
 
-    fn recv_phase1_reply(
+    async fn recv_phase1_reply(
         &mut self,
     ) -> (
         T::AcceptorId,
@@ -51,7 +53,7 @@ impl<T: Types> Transport<T> for DirectCall<T> {
         self.p2_replies.push_back((target, reply));
     }
 
-    fn recv_phase2_reply(&mut self) -> (T::AcceptorId, Result<(), T::Time>) {
+    async fn recv_phase2_reply(&mut self) -> (T::AcceptorId, Result<(), T::Time>) {
         self.p2_replies.pop_front().unwrap()
     }
 }

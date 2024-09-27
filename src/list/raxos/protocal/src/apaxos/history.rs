@@ -14,6 +14,7 @@ pub trait History<T>
 where
     T: Types<History = Self>,
     Self: Default + Debug + Clone,
+    Self: Send,
 {
     /// Append a new [`Event`] at a specific [`Time`] in the history.
     ///

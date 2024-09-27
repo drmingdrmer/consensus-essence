@@ -30,7 +30,7 @@ pub struct Phase1<'a, T: Types> {
 }
 
 impl<'a, T: Types> Phase1<'a, T> {
-    pub fn run(mut self) -> Result<Branch<T, { HEAD_UNDECIDED }>, APError<T>> {
+    pub async fn run(mut self) -> Result<Branch<T, { HEAD_UNDECIDED }>, APError<T>> {
         let apaxos = &mut self.apaxos;
 
         let mut sent = 0;
@@ -41,8 +41,9 @@ impl<'a, T: Types> Phase1<'a, T> {
         }
 
         for _ in 0..sent {
-            let (target, res) = self.apaxos.transport.recv_phase1_reply();
-            dbg!("received phase-1 reply", &target, &res);
+            let (target, res) = self.apaxos.transport.recv_phase1_reply().await;
+            // dbg!("received phase-1 reply", &target, &res);
+
             let Ok(view) = res else {
                 // Phase-1 request is rejected.
                 continue;
