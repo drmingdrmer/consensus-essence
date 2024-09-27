@@ -4,8 +4,8 @@ use std::fmt::Debug;
 
 use validit::Validate;
 
+use crate::apaxos::branch::Branch;
 use crate::apaxos::decided::Decided;
-use crate::apaxos::focal_history::FocalHistory;
 use crate::apaxos::history::History;
 use crate::Types;
 
@@ -39,7 +39,7 @@ impl<T: Types> Acceptor<T> {
     pub(crate) fn handle_phase1_request(
         &mut self,
         commit_time: T::Time,
-    ) -> Result<FocalHistory<T>, T::Time> {
+    ) -> Result<Branch<T>, T::Time> {
         self.check_committable(&commit_time)?;
 
         self.forbid_smaller_commit_time(commit_time);

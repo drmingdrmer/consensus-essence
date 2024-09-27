@@ -10,8 +10,8 @@ use std::fmt::Debug;
 
 use apaxos::ptime::Time;
 
+use crate::apaxos::branch::Branch;
 use crate::apaxos::decided::Decided;
-use crate::apaxos::focal_history::FocalHistory;
 use crate::apaxos::history::History;
 
 pub trait AcceptorId: Debug + Clone + Copy + Ord + 'static {}
@@ -54,7 +54,7 @@ where Self: Default + Debug + Clone + Sized + 'static
 
 pub trait Transport<T: Types> {
     fn send_phase1_request(&mut self, target: T::AcceptorId, t: T::Time);
-    fn recv_phase1_reply(&mut self) -> (T::AcceptorId, Result<FocalHistory<T>, T::Time>);
+    fn recv_phase1_reply(&mut self) -> (T::AcceptorId, Result<Branch<T>, T::Time>);
 
     fn send_phase2_request(&mut self, target: T::AcceptorId, decided: Decided<T>);
     fn recv_phase2_reply(&mut self) -> (T::AcceptorId, Result<(), T::Time>);
