@@ -29,14 +29,9 @@ impl<T: Types> Acceptor<T> {
     /// Handle the phase-1 request from a [`Proposer`], i.e., set up a new
     /// [`Time`] point.
     ///
-    /// Returns a history view for appending new event if it is allowed to
-    /// commit. Otherwise, returns the [`Time`] that disables this proposal.
-    ///
-    /// The returned `Time` will be used to revert the `Time` if the
-    /// [`Proposer`] decide to cancel this round of consensus algorithm.
-    /// For example, **2PC** will revert the `Time` if the coordinator receives
-    /// conflicting votes(otherwise other [`Proposer`] can not proceed). But
-    /// **Classic Paxos** does not have to revert the `Time` but it could.
+    /// Returns a [`Branch`] for appending new event if the given time is
+    /// allowed to commit a new event at.
+    /// Otherwise, returns the [`Time`] that disables this proposal.
     pub(crate) fn handle_phase1_request(
         &mut self,
         commit_time: T::Time,
@@ -51,8 +46,8 @@ impl<T: Types> Acceptor<T> {
     pub(crate) fn handle_phase2_request(&mut self, decided: Decided<T>) -> Result<(), T::Time> {
         dbg!("handle_phase2_request", &decided);
 
-        let new_written_time = decided.head_time();
-        self.check_committable(&new_written_time)?;
+        let head_time = decided.head_time();
+        self.check_committable(&head_time)?;
 
         self.history.merge(decided.into_history());
 
