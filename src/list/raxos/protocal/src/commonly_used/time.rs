@@ -1,3 +1,5 @@
+pub mod vec_2d;
+
 pub struct BallotNumber {
     pub round: u64,
     pub leader: u64,

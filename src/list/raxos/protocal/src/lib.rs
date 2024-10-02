@@ -32,7 +32,6 @@ where Self: Default + Debug + Clone + Sized + 'static
     /// - In Paxos, it is ballot number, which is `(round, proposer_id)`.
     /// - In Raft, it is `(term, Option<voted_for>)`.
     /// - In 2PC, it is mainly a vector of related data entry name.
-    // TODO: explain 2pc time.
     type Time: Time;
 
     /// The value to propose and to commit

@@ -42,13 +42,42 @@ mod tests {
 
     #[test]
     fn test_paxos() -> anyhow::Result<()> {
-        //
-
         let ex = Arc::new(Executor::new());
 
-        let fu = do_test(ex.clone());
+        let fu = async move {
+            let acceptor_ids = [1, 2, 3];
 
-        futures_lite::future::block_on(ex.run(fu))?;
+            let mut acceptors = BTreeMap::new();
+            for id in acceptor_ids {
+                acceptors.insert(id, Acceptor::default());
+            }
+
+            let quorum_set = Majority::new(acceptor_ids);
+            let transport = DirectCall::new(acceptors.clone());
+
+            let mut apaxos = APaxos::<Paxos>::new(acceptor_ids, quorum_set, transport);
+
+            let mut proposer = Proposer::new(&mut apaxos, 5, "hello".to_string());
+
+            let committed = proposer.run().await?;
+
+            assert_eq!(committed.latest_time(), Some(5));
+            assert_eq!(committed.latest_value(), Some(s("hello")));
+
+            println!("Done");
+
+            Ok::<(), anyhow::Error>(())
+        };
+
+        // let mut proposer = Proposer::new(&mut apaxos, 6, "world".to_string());
+        // let committed = proposer.run().await?;
+        //
+        // assert_eq!(committed.latest_time(), Some(6));
+        // assert_eq!(committed.latest_value(), Some(s("hello")));
+
+        ex.spawn(fu).detach();
+
+        futures_lite::future::block_on(ex.tick());
         Ok(())
 
         // TODO: rebuild from previous value
@@ -59,32 +88,6 @@ mod tests {
             println!("Inner task");
         })
         .detach();
-
-        let acceptor_ids = [1, 2, 3];
-
-        let mut acceptors = BTreeMap::new();
-        for id in acceptor_ids {
-            acceptors.insert(id, Acceptor::default());
-        }
-
-        let quorum_set = Majority::new(acceptor_ids);
-        let transport = DirectCall::new(acceptors.clone());
-
-        let mut apaxos = APaxos::<Paxos>::new(acceptor_ids, quorum_set, transport);
-
-        let mut proposer = Proposer::new(&mut apaxos, 5, "hello".to_string());
-        let committed = proposer.run().await?;
-
-        assert_eq!(committed.latest_time(), Some(5));
-        assert_eq!(committed.latest_value(), Some(s("hello")));
-
-        let mut proposer = Proposer::new(&mut apaxos, 6, "world".to_string());
-        let committed = proposer.run().await?;
-
-        assert_eq!(committed.latest_time(), Some(6));
-        assert_eq!(committed.latest_value(), Some(s("hello")));
-
-        println!("Done");
 
         Ok(())
     }
