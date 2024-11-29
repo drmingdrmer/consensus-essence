@@ -2,6 +2,8 @@
 
 This approach is proposed by [neog24](https://github.com/neog24)
 
+![](architecture.drawio.svg)
+
 在 Raft 中，**ReadIndex** 机制用于实现 Linearizable 的读操作。本文通过放宽请求的先后顺序定义，来降低读请求处理延迟.
 
 ### 标准 Raft 实现的 ReadIndex 流程

@@ -2,6 +2,8 @@
 
 This approach is proposed by [neog24](https://github.com/neog24)
 
+![](architecture.drawio.svg)
+
 In Raft, the **ReadIndex**  is used to implement linearizable read operations. We can lower the latency of read requests by relaxing the ordering requirements in the standard Raft protocol.
 
 ### ReadIndex Process in Raft
