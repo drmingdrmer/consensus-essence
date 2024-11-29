@@ -28,7 +28,9 @@ This repo is a list of distributed consensus protocol's bugs, flaws, deceptive t
   | 🌎 [中文版](src/list/raft-election-append-entries/raft-election-append-entries.cn.md)
 - [Raft: (Optimize): ReadIndex: Less Wait](src/list/raft-read-index/raft-read-index.md)
   | 🌎 [中文版](src/list/raft-read-index/raft-read-index.cn.md)
-
+- [Raft: (Optimize): ReadIndex: Less Latency through Relaxed Ordering](src/list/raft-read-index-relaxed-order/raft-read-index-relaxed-order.md)
+  | 🌎 [中文版](src/list/raft-read-index-relaxed-order/raft-read-index-relaxed-order-cn.md)
+  | by [neog24](https://github.com/neog24)
 
 ---
 
