@@ -1,88 +1,144 @@
 TODO: remove concept History quorum
 
-# 历史; 时间; 时间定序.
+# 分布式一致性的事件历史
 
-一个分布式一致性协议, 可以看做是: 对一个系统的**状态**达成一致的协议,
-而系统的状态(State), 可以等价的看做是一系列有序的, 对系统状态做出变更的**事件**(Event).
-即任意一组有序事件唯一定义了一个系统的状态.
-将一个Event加入系统时, 将与它有依赖关系的Event建立一条有向边. 这些边就表示Event加入的顺序.
-我们把这组**事件**称作系统事件的**历史**(Event History, 或 History).
+在分布式系统中，一致性协议的核心目标是确保对系统**状态**达成共识。我们可以这样理解：系统的状态（State）可以被视为一系列有序的、对系统状态进行变更的**事件**(**Event**) 的结果。 也就是说，任何给定的系统状态都可以通过一组特定的有序 **Event** 来唯一确定。
 
-显然 History 是无环的.
+当一个 **Event** 被引入系统时，它会与所有已存在的, 且存在依赖关系的 **Event** 建立有向边。这些有向边明确地表示了 **Event** 的发生顺序。我们将这组有序的 **Event** 集合称为系统Event的**历史**( **History** )。**History** 的定义确保了其无环性，即一个 **Event** 不可能依赖于它自身或其后续 **Event**，从而保证了 **Event** 发生的逻辑顺序。
 
-于是系统的 State 就可以用事件历史(DAG of events)来标识:
+基于以上定义，系统的状态可以被表示为 **Event** 的一个有向无环图：
 
 ```rust
 type State = DAG<Event>;
 ```
 
-其中 Event 表示 State 的变化,
-
-<!-- , Time表示这些变化应用到State上的顺序. -->
+例如: 考虑以下一系列 **Event**, 下面这个存储系统初始状态是 `⊥`, 先并发的加入了E1和E2, 它们之间没有依赖关系,
+然后先后又加入的E3,同时依赖E1和E2, 然后又加入了E4,依赖E3:
 
 ![](history.excalidraw.png)
 
-这与我们单机系统的状态定义也是一致的, 例如 3 个 Event 分别是:
+其中
+
 ```text
 E1: let x = 1;
 E2: let y = 2;
 E3: let x = x + y;
 E4: let z = 5;
+E5: let w = 6;
 ```
-那么系统的 State 就是
+
+那么系统的状态可以被计算为：
+
 ```
 State = apply(History)
-      = apply((E1, E2)->E3->E4)
-      = { x = 3; y = 2; z = 5}
+      = apply((E1, E2)->E3->(E4, E5))
+      = { x = 3; y = 2; w = 6; z = 5}
 ```
 
-即一个系统的状态都可以用一组日志(History) 和 应用日志(History) 的一个方法
-`apply` 来定义, 显然我们要求`apply`方法是确定的: 多次执行得到同样的结果.
+其中，`apply` 函数是一个确定性的函数，它将 **History** 解释为系统的状态。该函数按照 **History** 中 **Event** 的偏序顺序执行，并产生最终的系统状态。通过以上定义，我们可以将分布式系统中一致性问题转化为对 **Event History** 达成共识的问题。
 
-# 广义时间
+注意Event之间的依赖关系是业务定义的, 例如Event `let x = x + y` 可以定义它必须依赖`let x = 2`, 也可以不依赖, 它将导致最终的系统状态的不同, 但对于描述分布式一致性算法没有影响. 
 
-**def-PTime**
 
-抛开Event的内容, 图上一个vertex表示一个**时间**, 所有小于这个**时间**的Event, 即有一条路径到达这个vertex的Event, 是这个**时间**的History.
-**时间** 决定了Event之间的先后顺序, 虽然这个顺序是偏序的.
-但这里的时间并不同于我们常识中的时间, 所以我们另起一个称呼叫它 **广义时间**: PTime, PTime 是离散的, 由一个DAG表示的图.
-
-如果把表示**传递性**的边从DAG图中去掉, 得到 Hasse diagram, (transitive-reduction DAGs),
-那么Hasse diagram和一个偏序集是一一对应的,
-所以:
-
- **广义时间** 是一个偏序关系的值. 每个时间点(DAG中的vertex)可以存在一个Event.
- 
- (常识中的时间是线性的全序关系的值)
+## Time
 
 ![](history-generalized-time.excalidraw.png)
 
-系统中所有发生的读/写都发生在一个指定的**PTime**上, 例如上图中,
-- 在E3的时间上读, 就得到History `(E1,E2)->E3`;
-- 在E4的时间上读, 就得到History `(E1,E2)->E3->E4`;
+**def-Time**
+
+现在，让我们将注意力从 Event 的具体内容转移到其在 History 中的位置。在 History 的图中，每一个 Event 的顶点 (vertex) 都代表一个**时间**。我们称之为**时间**是因为它表示了Event的顺序, 这跟我们常识中的wall clock 时间是相通的, 也是wall clock的超集.
+
+对于一个给定的**时刻**, 由所有小于它的 Event，即所有与之**连通**的顶点和 Event 组成的集合，构成了这个**时间**的 History。
+
+例如上图中, 
+- `E3` 所在的时间`T3`对应的History 是 `(E1, E2) -> E3`.
+- `E4` 所在的时间`T4`对应的History 是 `(E1, E2) -> E3 -> E4`
+
+需要注意的是，这里的**时间**并非我们日常生活中所理解的线性时间(wall clock):
+- 不加特殊说明, 本文中提及时间的概念都是这个时间DAG定义的时间, 
+- 常识中的时间我们都称之为墙上时钟(wall clock time)的时间. 
+
+本文中DAG定义的时间可以是离散的或连续的，并且满足偏序关系:
+
+如果我们从表示时间的 DAG 中移除所有表示**传递性**的边(例如上图中`E1->E4`是由传递性`E1->E3->E4`定义的一条边)，我们就得到一个 transitive-reduction DAG (也称为 [Hasse diagram][])。Hasse diagram 和偏序集之间存在一一对应的关系, 因此我们说 **时间** 是一个偏序关系的值. 其中, 每一个时间点（即 DAG 中的一个顶点）可能存在或不存在一个 Event。
+
+（作为对比，常识中的时间(wall clock)是线性的、连续的, 全序关系的值。）
 
 
 ## History
 
-History 定义为一个通过偏序关系的时间 PTime 关联起来的事件 Event 集合.
+History 可以定义为一个通过偏序关系的时间 T 关联起来的事件 Event 集合.
 
-一个History 是一个DAG, 所以它一定有一个或多个 Maximal, 也就是最后的时间.
-类似我们现实世界的线性时间的概念里, 一个History一定是一个单链, 只有一个Maximal, 就是当前时间.
+显然一个 History 有一个或多个 [Maximal][], 也就是**最大时刻**, 也就是时间DAG中没有出向边的顶点.
+显然History 中,的多个**最打时刻** 之间是不可比较的. 
 
-在使用PTime的History中,可能有多个**最后时间**, 他们彼此之间是不可比较的.
+如果一个 History 中只有一个**最大时刻** [Maximal][], 那么把它写作 `History({T})` 的形式, 后面我们称之为T时刻的History.
+
+> 我们现实世界中, wall clock是线性的时间的, 因此一个 History 一定是一个单向链, 只有一个 Maximal, 就是墙上时钟的当前时刻.
+
+
+**def-History-PartialOrd**
+
+`History({T})`之间可以定义一个偏序关系, 即根据T的大小来描述一个`History({T})`的大小.
+
+即: `History({t_a}) < History({t_b})`, iff `t_a < t_b`.
+
+**def-Sub-History**
+
+我们也可以定义一个History子集的关系: 它跟History对应的 Hasse diagram 的子集定义一致:
+如果h1的Hasse diagram是h2 的 Hasse diagram 的子集, 那么h1 是 h2的子集, 或者说h1是h2的Sub-History
+
+注意, 这里比较的不是完整的DAG, 而是将传递性得到的边都去掉后的Hasse diagram.
+所以, `E1->E2` 是 `E1->E2->E3` 的Sub-History;
+但`E1->E3` 不是`E1->E2->E3` 的Sub-History, 因为根据定义, `E1`到`E3`的边,在前者中是非传递边, 在后者是传递边. 
+
+也可以更直观的理解为: `E1->E3` 之间插入一个`E2`后, 对整个系统的修改方式变了, 所以不能认为是History的子集.
 例如:
+```
+E1 : let x = 3;
+E2 : let x *= 2;
+E3 : let x += 1;
+```
+显然，apply(E1->E3) 的结果是 x = 4，而 apply(E1->E2->E3) 的结果是 x = 7。虽然 E1 和 E3 在两个 History 中都存在，但由于 E2 的插入改变了最终的状态，因此 E1->E3 不能被认为是 E1->E2->E3 的 Sub-History。
 
-特别的, 如果一个History中只有一个Maximal, 即最大时间, 那么把它写作 `History({ptime})` 的形式.
-表示它的最大时间只有一个.
+TODO: 图
+
+**def-Mergeable-History**
+
+合并2 个History的定义为: 合并后的顶点集合为2个History的顶点集合, 边仍未顶点对应的Time的大小关系定义.
+
+2个History h1 h2可合并的定义以下都是对等的:
+- 只在h1中的顶点和只在h2中的顶点都没有大小关系;
+- 合并之后的Hasse diagram的边集等于合并前的边集的并集, 即没有增加新的边;
+
+TODO: 图
 
 
+## 虚拟时间简化问题
 
 
-这里我们看到, 我们为了后面讨论更加方便, 现在必须把时间的概念从常识上的wall clock替换掉.
-因为常识中的wall clock提供了一些既定假设, 会阻碍看到问题的本质, 例如我们已经假定了时间只能是正向流逝的, 可以用一个正实数表示的等.
+在后面对分布式的讨论中, 我们抛弃常识上的 wall clock, 所涉及到的时间概念都替换成上面定义的虚拟时间的概念.
+
+这是因为: 现实世界中我们无法让一个事件在不同的位置上**同时**发生(即使这里不考虑相对论造成的时空问题). 例如我不能要求在服务器A和服务器B上**同时**进行一个`read(ABC)`的操作, 这最终导致了我们基于时间的理论都无法直接在分布式环境中使用了. 
+
+> 试想一下便知, 如果能强制某个操作在多个服务器上**同时**执行, 那么paxos这些算法就没有必要出现了, 分布式领域中面对的所有问题, 最终都会归结为一个事件**无法(在多个位置)同时执行**这个原因. Prove me wrong (.
+
+虽然在分布式环境中使用wall clock, 也可以建立一个定序的框架, [Time, Clocks and the Ordering of Events in a Distributed System][], 但直接重新定义分布式环境中的时间, 可以让问题更加简单直接, 这也是后续的 [Paxos made simple][] 成功的原因.
+
+回顾分布式领域发展的几个关键的事件:
+
+- 尝试用wall clock在分布式环境中定序: [Time, Clocks and the Ordering of Events in a Distributed System][]
+- 引入逻辑定义的时间来解决分布式中无法**同时**发生的问题: [Paxos Made Simple][], 它找到了正确的方向, 因此是最重要的一篇, 但还没有深入使用这个工具来解决工程上的问题.
+- 将逻辑时间真正扩展为一个工业可用的, 线性的时间定义: [Raft][], 对绝大部分分布式一致性问题给出了标准答案.
+- 试图将逻辑时间从线性扩展到多维度的: [CRDT][], [Generalized Consensus and Paxos][], [CURP][], 等在不同方向进行了尝试, 其中的核心思想都是将业务上无需定序的2个操作视为不同时间维度上的操作, 例如 `let x = 2` 和 `let y = 3` 就是在2个不同维度上的操作, 不需要定义他们两个之间的顺序.
+- 本文的目标是完全脱离线性时间的限制, 直接在更抽象的层面定义时间, 并将看到它引出更有趣的结论.
 
 
-## 用广义时间表示单线程环境
+## 用虚拟时间描述单线程环境
+
+TODO  remove this section
+
+我们这里使用的虚拟时间是物理世界中wall clock的超集, 所以也可以用来描述一个单线程中, 使用wall clock的环境:
 
 在我们常识中的单机系统, 可以用一个链表形式的历史来描述:
 例如, 一个简单的程序:
@@ -98,9 +154,9 @@ let x = x + y;
 历史的合理演进可以是:
 -  我们可以在之后的时间(wall clock)继续改变系统的状态, 增加`E3`;
 
-不允许发生的演进包括: 
-- 不能回到过去在E1和E2之间插入一个`Ex`;
-- 也不能让曾经存在过的E1消失
+不允许发生的演进包括:
+- 不能回到过去在 E1 和 E2 之间插入一个`Ex`;
+- 也不能让曾经存在过的 E1 消失
 
 ![](history-singe-thread.excalidraw.png)
 
@@ -112,67 +168,78 @@ TODO
 
 # 读写
 
-这个系统上的读写定义为在一个指定时间上发生的行为:
+这个由虚拟时间Time, 事件Event 和 History 的系统中, 读操作和写操作都定义为在一个指定时间上发生的行为:
 ```rust
-fn read(ptime: PTime) -> History;
-fn write(h: History({ptime}));
+fn read(t: Time) -> History({t});
+fn write(h: History({T}));
 ```
 
+其中, `read` 读系统中t时刻的历史, 即它应该返回所有t时刻之前发生的Event,
+`write`写一个某时刻t的历史.
+
+## 读写正确性的必要条件
+
+读写正确性的必要条件: read 返回的 History 只能包含曾经 write 过的 History.
+即, 如果只写过`History = {E1->E3}`, 那么 read 返回`{E1->E3}` 或 `{E1->E3->E4}` 都不违法正确性所要求的必要条件.
+但是读到 `{E3}` 就表示数据损坏了, 读到`{E1->E2->E3}` 也表示数据损坏了.
+因为作为一个图`{E1->E3}` 虽然是 `{E1->E2->E3}` 的子集, 但他们是不同的历史(即应用到状态机后得到的状态是不同的).
 
 
-例如, 在单机系统中的读操作因为使用wall clock, 所以 ptime就是当前时刻不需要指定. 所以是`fn read() -> History`.
-但一般我们只取其中一个key,所以是`fn read(key: &str) -> V`的形式.
+### 读写函数在单机上的例子
 
-而单机系统中的写也无需指定wall clock, 但我们一般不是把系统的整个状态写进去, 而是用一个command来表示
-这个command描述在系统现有基础上做出哪些修改, 例如command是`let x = 3` 或 `let x = x + y`,
-这些command的默认前提都是**在系统现有的状态下**做一个更新, 也就是在当前的wall clock时刻之前的已有状态基础上更新,
+例如, 在单机系统中的读操作因为使用 wall clock, 所以 ptime 就是当前时刻不需要指定. 所以是`fn read() -> History`.
+但一般我们只取其中一个 key,所以是`fn read(key: &str) -> V`的形式.
+
+而单机系统中的写也无需指定 wall clock, 但我们一般不是把系统的整个状态写进去, 而是用一个 command 来表示
+这个 command 描述在系统现有基础上做出哪些修改, 例如 command 是`let x = 3` 或 `let x = x + y`,
+这些 command 的默认前提都是**在系统现有的状态下**做一个更新, 也就是在当前的 wall clock 时刻之前的已有状态基础上更新,
 也就对应了我们最原始的`fn write(h:History({ptime}))`的逻辑.
 
-这2个读写接口很容易映射到一个单线程的系统上, 我们希望也用这个接口去定义一个分布式的系统.
+这 2 个读写接口很容易映射到一个单线程的系统上, 我们希望也用这个接口去定义一个分布式的系统.
 
 ## 过去 未来 Committed
 
 这里我们要提出一个概念:
 
-如果对一个时刻 `ptime`, `read(ptime: PTime)` 的所有调用都返回同样的History, 
-那么这个`ptime`时刻是 **过去**, 同时认为这个History是committed,
-否则这个时刻是 **未来**, 这个时刻没有一个committed 的 History.
+如果对一个时刻 `t`, `read(t: Time)` 的所有调用都返回同样的 History({t}),
+那么这个`t`时刻是 **过去**, 即认为这个 History({t}) 是确定的了, 即 committed,
+否则这个时刻在系统中属于是 **未来**, 这个时刻对应的状态还没有确定, 没有一个 committed 的 History.
 
 ### 过去未来在单线程环境中的例子
 
-在单线程环境中因为我们使用wall clock, 它随时都在流逝, 而且单线程环境中任意2次read操作都是有先后的.
+在单线程环境中因为我们使用 wall clock, 它随时都在流逝, 而且单线程环境中任意 2 次 read 操作都是有先后的.
 所以每次读都是唯一的, 唯一所以本身就满足**不变**的条件, 所以每次读看到的都是**过去**,
 无法看到**未来**.
 
-但是在分布式中, 因为使用虚拟的时间, 在同一个时刻可以发生多次read, 可能得到不同结果.
+但是在分布式中, 因为使用虚拟的时间, 在同一个时刻可以发生多次 read, 可能得到不同结果.
 
 ### 过去未来在分布式中的例子
 
-classic Paxos 中 的phase-1可以认为是一个read函数的调用,
-而classic Paxos中的 PTime是它的ballot number(一般是递增变量和节点id组成的一个tuple),
-所以, 如果一个paxos instance没有commit一个值(即还没有将一个值写到多数派), 
-那么运行 classic Paxos的phase-1,可能会看到不同的值, 即现在系统存储着什么值,属于未来的,还没到来的一个状态.
-而当一个值提交了, 那么后续所有的phase-1(后续指用更大的ballot number(对应我们的PTime)), 都能读到这个已提交的值.
+classic Paxos 中 的 phase-1 可以认为是一个 read 函数的调用,
+而 classic Paxos 中的 PTime 是它的 ballot number(一般是递增变量和节点 id 组成的一个 tuple),
+所以, 如果一个 paxos instance 没有 commit 一个值(即还没有将一个值写到多数派),
+那么运行 classic Paxos 的 phase-1,可能会看到不同的值, 即现在系统存储着什么值,属于未来的,还没到来的一个状态.
+而当一个值提交了, 那么后续所有的 phase-1(后续指用更大的 ballot number(对应我们的 PTime)), 都能读到这个已提交的值.
 即这个系统的值已经属于**过去**了,不会再变了.
 
 所以也可以说一个时刻的状态是否不变, 表示了过去和未来.
 
-假设一个三节点的classic paxos系统, 
-发生的事件序列是: 
+假设一个三节点的 classic paxos 系统,
+发生的事件序列是:
 
-P1 用ballot number=1 通过node-1 和node-2完成phase1, 将值x写到node-1;
-P3 用ballot number=3 通过node-3 和node-2完成phase1, 将值z写到node-3;
+P1 用 ballot number=1 通过 node-1 和 node-2 完成 phase1, 将值 x 写到 node-1;
+P3 用 ballot number=3 通过 node-3 和 node-2 完成 phase1, 将值 z 写到 node-3;
 
-这时 P4(ballot number=4)执行phase-1, 如果
-- P4联系node-1和node-2, 它读到的值是x
-- P4联系node-3和node-2, 它读到的值是z.
+这时 P4(ballot number=4)执行 phase-1, 如果
+- P4 联系 node-1 和 node-2, 它读到的值是 x
+- P4 联系 node-3 和 node-2, 它读到的值是 z.
 
 读到不同的值表示系统的状态还没确定, 属于未来.
 
-这时假设P4联系node-1和node-2完成phase1, 再将读到的值x写回node-1和node-2,
-这时node-1和node-2的状态都是ballot number=4,vballot =4, value =x.
+这时假设 P4 联系 node-1 和 node-2 完成 phase1, 再将读到的值 x 写回 node-1 和 node-2,
+这时 node-1 和 node-2 的状态都是 ballot number=4,vballot =4, value =x.
 
-而后续的P5(ballot number=5), 不论通过哪2个节点完成phase-1,都会看到x(因为x的vballot比z的vballot大,z会被忽略),
+而后续的 P5(ballot number=5), 不论通过哪 2 个节点完成 phase-1,都会看到 x(因为 x 的 vballot 比 z 的 vballot 大,z 会被忽略),
 这时认为系统的状态已经确定了, 属于**过去**了.
 
 ![](past-future-paxos.excalidraw.png)
@@ -180,14 +247,14 @@ P3 用ballot number=3 通过node-3 和node-2完成phase1, 将值z写到node-3;
 这也是我们对**过去/未来**定义的在分布式系统中最直接的一个反应.
 
 
-# 分布式多副本的History
+# 分布式多副本的 History
 
 我们有了一个系统 State 的描述方式 History, 接下来在分布式环境中把它实现高可用,
 即通过多个 History 的副本来实现高可用.
 
 ## 定义:
 
-- 分布式表示, 系统中有多个History的副本, 存储在多个副本上;
+- 分布式表示, 系统中有多个 History 的副本, 存储在多个副本上;
 - 高可用表示, 读或写不需要联系全部节点才能成功执行;
 
 分布式给这个系统带来的改变是:
@@ -199,12 +266,12 @@ P3 用ballot number=3 通过node-3 和node-2完成phase1, 将值z写到node-3;
 如果 History 是一个非线性的结构, 例如是 DAG 关系组织的 Event 的图,
 那么`apply()`就要包含更多的内容, 后面说
 
-<!-- `apply()` 方法可以认为是确定的, 因此我们可以后面都用History来表示系统的状态(State) -->
+<!-- `apply()` 方法可以认为是确定的, 因此我们可以后面都用 History 来表示系统的状态(State) -->
 
 <!--
    - # 分布式系统的接口定义
    -
-   - 对这个分布式系统, 需要有一个Commit(`commit(History)`)的定义和一个`read_committed() -> History` 的定义,
+   - 对这个分布式系统, 需要有一个 Commit(`commit(History)`)的定义和一个`read_committed() -> History` 的定义,
    - 也就是写和读的接口.
    -->
 
@@ -212,12 +279,12 @@ P3 用ballot number=3 通过node-3 和node-2完成phase1, 将值z写到node-3;
    - # 分布式的高可用
    -
    - 高可用的定义是, 在这个 History 多副本的分布式系统的使用者:
-   - - 同时,只需联系到其中几个副本, 就可以Commit一个新的History;
-   - - 只需要联系到其中几个副本就可以读到已Commit的History.
+   - - 同时,只需联系到其中几个副本, 就可以 Commit 一个新的 History;
+   - - 只需要联系到其中几个副本就可以读到已 Commit 的 History.
    -
-   - 这里Commit是一个读写之间的契约,
-   - 简单说一个History一定可以被读到那么就是Committed.
-   - Committed的定义我们后面详细讨论.
+   - 这里 Commit 是一个读写之间的契约,
+   - 简单说一个 History 一定可以被读到那么就是 Committed.
+   - Committed 的定义我们后面详细讨论.
    -->
 
 我们先来看 History 部分.
@@ -241,34 +308,28 @@ System: BTreeMap<NodeId, History>
 fn read_nodes(nodes: &[NodeId], ptime: PTime) -> Vec<History>;
 ```
 
-但我们要求read只能返回一个History, 所以要将`Vec<History>` 合并为一个`History`
+但我们要求 read 只能返回一个 History, 所以要将`Vec<History>` 合并为一个`History`
 返回的结果
 
-### 读写正确性的充要条件
 
-读写正确性的充要条件: read返回的History只能包含曾经write过的History.
-即, 如果只写过`History = {E1->E3}`, 那么read返回`{E1->E3}` 或 `{E1->E3->E4}` 都是合法的.
-但是读到 `{E3}` 就表示数据损坏了, 读到`{E1->E2->E3}` 也表示数据损坏了.
-因为作为一个图`{E1->E3}` 虽然是 `{E1->E2->E3}` 的子集, 但他们是不同的历史(即应用到状态机后得到的状态是不同的).
 
-### History的兼容
+### History 的兼容
 
-如果h1 和 h2 是兼容的, 那么h1 和 h2 合并后, 任何一个pTime的History都不变.
-或者说, 合并之后不产生不属于h1也不属于h2的新的边, 也就不会导致History变化.
+如果 h1 和 h2 是兼容的, 那么 h1 和 h2 合并后, 任何一个 pTime 的 History 都不变.
+或者说, 合并之后不产生不属于 h1 也不属于 h2 的新的边, 也就不会导致 History 变化.
 
-所以, 读的正确性保证要求read返回的结果不能包含不兼容的History.
+所以, 读的正确性保证要求 read 返回的结果不能包含不兼容的 History.
 
-例如, 如果read_nodes读到2个History `{E1->E2}` 和 `{E1->E3}`, 且`E2->E3`,即E2的pTime小于E3的pTime,
-那么read函数不能同时包含这2个结果, 因为他们合并之后的结果`{E1->E2->E3}`不能是任何之前write写入的值.
+例如, 如果 read_nodes 读到 2 个 History `{E1->E2}` 和 `{E1->E3}`, 且`E2->E3`,即 E2 的 pTime 小于 E3 的 pTime,
+那么 read 函数不能同时包含这 2 个结果, 因为他们合并之后的结果`{E1->E2->E3}`不能是任何之前 write 写入的值.
 
-因此如果read读到不兼容的History,就必须舍弃其中一个. 如果舍弃大的, 那么系统则有可能永远无法提交更大的History,
-即如果`{E1->E2}`存在在一个存储节点上, 那么如果它就有可能被读到, 那么就没有办法保证其他任何更大的History能被读到了. 
-因此这里必须舍弃较小的不兼容History,
+因此如果 read 读到不兼容的 History,就必须舍弃其中一个. 如果舍弃大的, 那么系统则有可能永远无法提交更大的 History,
+即如果`{E1->E2}`存在在一个存储节点上, 那么如果它就有可能被读到, 那么就没有办法保证其他任何更大的 History 能被读到了.
+因此这里必须舍弃较小的不兼容 History,
 
-这里的History都是指单顶点的`History({PTime})`, 一个History可以表示成 `History({pTime_1})` .. 的并集.
-因此read函数就是把所有读到的单顶点History逐对比较, 舍弃小的.
+这里的 History 都是指单顶点的`History({PTime})`, 一个 History 可以表示成 `History({pTime_1})` .. 的并集.
+因此 read 函数就是把所有读到的单顶点 History 逐对比较, 舍弃小的.
 
-小的History定义: `History({pTime_a})` 和 `History({pTime_b})`, 如果`pTime_a < pTime_b`.
 
 
 单副本,或单机环境中, 对整个系统的读是一个简单的操作: `fn read(ptime: PTime) -> History`.
@@ -279,17 +340,17 @@ fn read_nodes(nodes: &[NodeId], ptime: PTime) -> Vec<History>;
 
 **prop-Merge-Read**
 
-read返回的结果做并集作为返回的结果, 但是这里有些History是不能合并的:
+read 返回的结果做并集作为返回的结果, 但是这里有些 History 是不能合并的:
 
-这是因为分布式中的read可以选择不同的节点来读, 可能每次读到的结果不同. 
+这是因为分布式中的 read 可以选择不同的节点来读, 可能每次读到的结果不同.
 假设系统中的时间是`pT1 < pT2 < pT6; pT1 < pT3 < pT6`:
 
-`read(pT6, {1,3})` 得到 `[{E1}, {E1->E3}]`, 这2个History是可以合并的, 得到 `{E1->E3}`.
-`read(pT6, {2,3})` 得到 `[{E1}, {E1->E2}]`, 这2个History是可以合并的, 得到 `{E1->E2}`.
+`read(pT6, {1,3})` 得到 `[{E1}, {E1->E3}]`, 这 2 个 History 是可以合并的, 得到 `{E1->E3}`.
+`read(pT6, {2,3})` 得到 `[{E1}, {E1->E2}]`, 这 2 个 History 是可以合并的, 得到 `{E1->E2}`.
 
-`read(pT6, {1,2})` 得到 `[{E1->E2}, {E1->E3}]`, 这时, 如果E2和E3的时间pT2和pT3不可比较,
+`read(pT6, {1,2})` 得到 `[{E1->E2}, {E1->E3}]`, 这时, 如果 E2 和 E3 的时间 pT2 和 pT3 不可比较,
 那么这次读取可以合并结果为`{E1->(E2,E3)}`;
-但如果`pT2 < pT3`, 假设合并为`{E1->E2->E3}`, 会造成E3这个事件的历史发生变化, 合并之后就不再是之前的时间和Event了. 因此不能合并.
+但如果`pT2 < pT3`, 假设合并为`{E1->E2->E3}`, 会造成 E3 这个事件的历史发生变化, 合并之后就不再是之前的时间和 Event 了. 因此不能合并.
 
 
 ![](history-conflict.excalidraw.png)
@@ -297,7 +358,7 @@ read返回的结果做并集作为返回的结果, 但是这里有些History是�
 所以规则是:
 合并之后的图的边集合和合并前的图的边集的并集相同.
 或者说, 合并后不能产生新的边.
-或者说, 对2个History A和B, 只在A中的节点和只在B中的节点没有大小关系.
+或者说, 对 2 个 History A 和 B, 只在 A 中的节点和只在 B 中的节点没有大小关系.
 
 这是因为, 如果有新的边出现, 意味着会产生读到历史被改变了.
 
@@ -306,20 +367,20 @@ read返回的结果做并集作为返回的结果, 但是这里有些History是�
 
 ## 舍弃部分读结果
 
-这时, 如果读到2个结果A,B, 必须舍弃其中一个. 假设冲突的产生是A中的a节点小于B中的b节点.
-- 如果舍弃大的, 即B, 也就是说只要读到A, B就不会被看到, 也就是说, B的写可能认为自己提交了但是无法被读到.
-  所以A在提交前必须**禁止系统写大于A的**任何History. 这样就无法提交任何新的历史了. 所以这个选项不行.
+这时, 如果读到 2 个结果 A,B, 必须舍弃其中一个. 假设冲突的产生是 A 中的 a 节点小于 B 中的 b 节点.
+- 如果舍弃大的, 即 B, 也就是说只要读到 A, B 就不会被看到, 也就是说, B 的写可能认为自己提交了但是无法被读到.
+  所以 A 在提交前必须**禁止系统写大于 A 的**任何 History. 这样就无法提交任何新的历史了. 所以这个选项不行.
 
-所以, read函数必须舍弃较小的, 这里即A, 选择B.
+所以, read 函数必须舍弃较小的, 这里即 A, 选择 B.
 
 **prop-Discard-Smaller**
 
 
 ## 写前阻止更小的写入
 
-也就是说, A在写入前,必须通知系统: 不能写入比 A中新节点小的节点. 否则,即使写入了, 也会被A的写入覆盖无法读到.
+也就是说, A 在写入前,必须通知系统: 不能写入比 A 中新节点小的节点. 否则,即使写入了, 也会被 A 的写入覆盖无法读到.
 
-被阻止的client, 仍然可以写, 但是不能认为自己写成功了.
+被阻止的 client, 仍然可以写, 但是不能认为自己写成功了.
 
 **prop-Write-Forbid-Smaller**
 
@@ -328,7 +389,7 @@ read返回的结果做并集作为返回的结果, 但是这里有些History是�
 
 对于
 `fn read(pt: PTime, nodes: Vec<Node>) -> History`,
-对读到的 History 的任一子集H, 我们可以称这个`node_set` 是这个`History`的一个 ReadSet. 表示这个`History` 可以通过这个`node_set`读到.
+对读到的 History 的任一子集 H, 我们可以称这个`node_set` 是这个`History`的一个 ReadSet. 表示这个`History` 可以通过这个`node_set`读到.
 
 对系统的某个特定的状态, Histroy 的 ReadSet 定义为可以读到这个 History 的一个节点的集合.
 
@@ -369,14 +430,14 @@ E1->E2->E3
 ## Read Quorum Set
 
 对每个系统, 不论是单机的还是分布式的,
-都显式的或隐含的定义了合法的 `read()` 可用的 `node_set` 有哪些, 系统只有用这样的`node_set` 读的时候才能提供TODO:
+都显式的或隐含的定义了合法的 `read()` 可用的 `node_set` 有哪些, 系统只有用这样的`node_set` 读的时候才能提供 TODO:
 
 - 例如单机系统, `read()` 可用的 `node_set` 就是唯一这个节点`{{1}}`,
   显然用一个空的 `node_set` 去读是没意义的.
 
 - 一个简单 3 节点系统中, 如果不做任何限制,
   那么`read()`可用的`node_set`是所有非空节点集合: `{{1}, {2}, {3}, {1,2}, {2,3}, {1,3}, {1,2,3}}`
-  但注意这样一个系统中`read()`得到的结果一般是没有任何高可用保证的, 因为它暗示了写操作必须写到每一个node上才能被合法的读读到.
+  但注意这样一个系统中`read()`得到的结果一般是没有任何高可用保证的, 因为它暗示了写操作必须写到每一个 node 上才能被合法的读读到.
 
 - 一个多数派读写的 3 节点系统中(n=3, w=2, r=2),
   `read()`可用的`node_set`是至少包含 2 节点的集合: `{{1,2}, {2,3}, {1,3}, {1,2,3}}`,
@@ -396,8 +457,8 @@ E1->E2->E3
 
 ![](quorum-majority-3.excalidraw.png)
 
-一般一个集群节点固定的系统来说, 它的 `read_quorum_set`一般是不变的, 例如classic-paxos 的 `read_quorum_set` 和 `write_quorum_set`总是多数派.
-如果涉及到集群节点的变化, 它的 `read_quorum_set` 和 `write_quorum_set` 可能就会发生变化, 以满足committed的要求.
+一般一个集群节点固定的系统来说, 它的 `read_quorum_set`一般是不变的, 例如 classic-paxos 的 `read_quorum_set` 和 `write_quorum_set`总是多数派.
+如果涉及到集群节点的变化, 它的 `read_quorum_set` 和 `write_quorum_set` 可能就会发生变化, 以满足 committed 的要求.
 
 ### Write Quorum Set
 
@@ -412,7 +473,7 @@ E1->E2->E3
 
 一对 `read_quorum_set` 和 `write_quorum_set` 保证了: 每次写入都能被读到.
 
-例如, 
+例如,
 - 如果一个 3 节点集群的 `read_quorum_set` 是多数派, 即:
   ```
   {
@@ -440,7 +501,7 @@ E1->E2->E3
 **def-Observable**
 
 对于某个时刻`pt`,
-对一个 History, 如果这个时刻的 `read_quorum_set` 中任意一个`read_quorum` 都能读到这个History,
+对一个 History, 如果这个时刻的 `read_quorum_set` 中任意一个`read_quorum` 都能读到这个 History,
 那么就认为这个 History 是 **在`pt`时刻可见** 的.
 
 注意 **可见** 是跟系统的状态和 `read_quorum_set` 的定义相关的,
@@ -473,7 +534,7 @@ E1->E2->E3
 
 
 因为 **可见** 的定义是跟节点上存储的数据的状态和`read_quorum_set`决定的,
-所以数据丢失一般常见的就是这两种: 
+所以数据丢失一般常见的就是这两种:
 - 一种是节点上 History 副本状态回退, 例如磁盘损坏等;
 
   这时如果 E3 从 1 节点上删除了, 在这个系统状态的变化中, 就导致了`History{E1, E2, E3}`的丢失,
@@ -492,24 +553,24 @@ https://blog.openacid.com/distributed/raft-bug/#raft-%E5%8D%95%E6%AD%A5%E5%8F%98
 ## 系统可用性
 
 可以看出, Committed 的是跟`read_quorum_set`相关的,
-一般地, 直观来说, 
+一般地, 直观来说,
 
 - 如果 `read_quorum_set` 中的 `read_quorum` 变小, 系统读的可用性增加, 因为只需更少的节点就可以完成一次读; 但写的可用性降低, 因为要成功写入更多节点才能认为是成功, 即 Committed 达成的条件变得困难.
-  例如, 5 节点系统, 如果 `read_quorum_set` 是任意4节点, 那么 `write_quorum_set` 可以是任意2节点;
-  如果 `read_quorum_set` 改成任意3节点, 那么`write_quorum_set`要相应的变成任意3节点; 
+  例如, 5 节点系统, 如果 `read_quorum_set` 是任意 4 节点, 那么 `write_quorum_set` 可以是任意 2 节点;
+  如果 `read_quorum_set` 改成任意 3 节点, 那么`write_quorum_set`要相应的变成任意 3 节点;
   即读成功更容易了, 写成功更困难了.
 
-- 如果 `read_quorum_set` 中的 `read_quorum`数量变少, 系统的读可用性降低, 因为可用于读的节点组合变少了, 能容忍的节点宕机的组合变少了; 但写的可用性提高, 因为某些节点组合不需要去覆盖了, 即更容易 Commit了.
-  例如, 3节点的多数派系统中, `read_quorum_set`是任意2节点: `{{1,2},{1,3},{2,3}}`, `write_quorum_set` 也是: `{{1,2},{1,3},{2,3}}`; 
+- 如果 `read_quorum_set` 中的 `read_quorum`数量变少, 系统的读可用性降低, 因为可用于读的节点组合变少了, 能容忍的节点宕机的组合变少了; 但写的可用性提高, 因为某些节点组合不需要去覆盖了, 即更容易 Commit 了.
+  例如, 3 节点的多数派系统中, `read_quorum_set`是任意 2 节点: `{{1,2},{1,3},{2,3}}`, `write_quorum_set` 也是: `{{1,2},{1,3},{2,3}}`;
   如果 `read_quorum_set`中去掉 `{1,3}` 变成: `{{1,2},{2,3}}`, 那么 `write_quorum_set` 变成: `{{1,3},{2}}`;
-  读可用性降低: 从容忍任一节点宕机变成不能容忍node-2宕机; 写的可用性提高: 从容忍任一节点宕机又增加了可以容忍node 1,3 同时宕机.
+  读可用性降低: 从容忍任一节点宕机变成不能容忍 node-2 宕机; 写的可用性提高: 从容忍任一节点宕机又增加了可以容忍 node 1,3 同时宕机.
 
 再例如不做限制的 3 节点系统(`read_quorum_set={{1},{2},{3},{1,2},{1,3},{2,3},{1,2,3}}`),
 要达成 Committed, 它的`read_quorum_set`是最大的, 就要求从任意节点都能读到这个 History,
 读操作不能容忍任何节点故障.
 
 如果将`read_quorum_set` 去掉几个元素, 例如去掉`{1}`,
-即系统不再要求从node-1节点上能读到这个 History 了, 系统就容忍了一定的故障(`node-1`的故障),
+即系统不再要求从 node-1 节点上能读到这个 History 了, 系统就容忍了一定的故障(`node-1`的故障),
 也就是说可用性提高了.
 
 所以可用性的就被`read_quorum_set`决定(因为`read_quorum_set`直接决定了`write_quorum_set`)
@@ -618,10 +679,10 @@ https://blog.openacid.com/distributed/raft-bug/#raft-%E5%8D%95%E6%AD%A5%E5%8F%98
 在分布式一致性协议里的角色跟我们现实中的墙上时钟几乎是完全一样的.
 
 <!--
-   - 而根据Committed 的定义, 它必须总是能被读到,
-   - 因此这个系统必须满足 Committed的History分支, 在写入完成时, 必须(在任一read_quorum中)是最大的.
+   - 而根据 Committed 的定义, 它必须总是能被读到,
+   - 因此这个系统必须满足 Committed 的 History 分支, 在写入完成时, 必须(在任一 read_quorum 中)是最大的.
    -
-   - 每次Commit一个Event, 它必须具有全局中最大的T.
+   - 每次 Commit 一个 Event, 它必须具有全局中最大的 T.
    -->
 
 ## Commit 在线性 History 约束中的定义
@@ -840,3 +901,14 @@ commit 的定义: 总是能读到(因为: 可能脏读: 最大历史不在 quoru
 (paxos 的不同做法是: 把最大历史拿过来)
 
 raft 接 append-entries 时不需要用(t2, a) 覆盖 (t2,b)
+
+
+
+[Hasse diagram]: https://xxx
+[Maximal]: foo
+[Time, Clocks and the Ordering of Events in a Distributed System]: https://lamport.azurewebsites.net/pubs/time-clocks.pdf
+[Paxos Made Simple]: https://lamport.azurewebsites.net/pubs/paxos-simple.pdf
+[Raft]: https://raft.github.io/raft.pdf
+[Generalized Consensus and Paxos]: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/tr-2005-33.pdf
+[CRDT]: https://en.wikipedia.org/wiki/Conflict-free_replicated_data_type
+[CURP]: https://www.usenix.org/system/files/nsdi19-park.pdf
