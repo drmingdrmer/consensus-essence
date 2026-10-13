@@ -31,6 +31,8 @@ This repo is a list of distributed consensus protocol's bugs, flaws, deceptive t
 - [Raft: (Optimize): ReadIndex: Less Latency through Relaxed Ordering](src/list/raft-read-index-relaxed-order/raft-read-index-relaxed-order.md)
   | 🌎 [中文版](src/list/raft-read-index-relaxed-order/raft-read-index-relaxed-order-cn.md)
   | by [neog24](https://github.com/neog24)
+- [Raft: (Generalize): Read-Write Quorum](src/list/raft-read-write-quorum/raft-read-write-quorum.md)
+  | 🌎 [中文版](src/list/raft-read-write-quorum/raft-read-write-quorum.cn.md)
 
 ---
 
