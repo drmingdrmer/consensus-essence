@@ -40,6 +40,13 @@ In this optimization, we relax the strict ordering of requests as defined in the
 
 ### Guaranteeing Linearizability
 
+This analysis assumes that the Leader replies to a write only after applying it to its own StateMachine.
+
+Reads on Followers need one more rule. A Follower may apply a log of the current term before the Leader does. If the Follower served a read from that state, a later read on the Leader could miss that state, because the later read waits only for NoopIndex. Either of the following two rules prevents this, and choosing either one is enough:
+
+- **Leader-only reads**: Only the Leader serves linearizable reads.
+- **Or, Follower reads that wait for the Leader**: Followers also serve linearizable reads. A Follower read uses the standard ReadIndex process: the Leader runs Step-1 to Step-3 and sends the ReadIndex to the Follower, and the Follower reads after its own AppliedIndex reaches it. In addition, the Follower replies only after the Leader's AppliedIndex reaches the Follower's AppliedIndex at the time of the read.
+
 Assume a read request `r` is received by the Raft server at time `t`. Let's consider both write and read requests that occurred before time `t`.
 
 #### For a Write Request `w` Before Time `t`
@@ -51,7 +58,8 @@ Assume a read request `r` is received by the Raft server at time `t`. Let's cons
 
 #### For Read Request `r0` Before Time `t`
 
-- **If `r0` was processed on another server**: Since `r0` only sees committed content, and current Leader contains all previous Leaders' committed content before NoopIndex, `r` will see at least `r0`'s state.
+- **If `r0` was processed on a previous Leader**: Since `r0` only sees committed content, and current Leader contains all previous Leaders' committed content before NoopIndex, `r` will see at least `r0`'s state.
+- **If `r0` was processed on a Follower** (possible only with the second rule): Before `r0` replied, the Follower's Leader had applied the state that `r0` saw. If that Leader is the current Leader, `r` reads the same StateMachine later. If it is a previous Leader, that state contains only logs committed by previous Leaders, which come before NoopIndex. Either way, `r` will see at least `r0`'s state.
 - **If `r0` was processed on current server**: Sequential processing ensures `r` sees at least `r0`'s state.
 
 From this analysis, we can see that by relaxing the strict ordering of requests, the optimization still guarantees linearizability. This optimization reduces the waiting time for read operations, thereby decreasing read latency.
