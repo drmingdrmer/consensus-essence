@@ -24,6 +24,9 @@ Revert 可以应用到 Paxos(将 acceptor 的 `last_rnd` 回退到上一个值),
 **Revert 的用途** 是可以优雅的处理一致性协议中 [偏序关系](https://zh.wikipedia.org/wiki/偏序关系) 产生的冲突.
 例如在下图的 raft 状态中, Follower N3 没有收到任何 term=2 的日志, 开始了 election,
 term=3 时, N1 和 N2 都会拒绝 N3 的 vote 请求, 因为 N3 的 log 不够大.
+这里假设的是 Raft 的一个变体: 节点收到 term 更大的 vote 请求时, 先比较 log; 如果 candidate 的 log 不够大, 就直接拒绝, 不提升自己的 term. [Openraft](https://github.com/databendlabs/openraft/blob/79372b4dff4312f5eb344db76d5ed1dffe69fac7/openraft/src/engine/engine_impl.rs#L284-L307) 就采用了这个规则: 先检查 log, 再更新 term.
+标准 Raft 会先提升接收者的 term, 这会让 N1 立刻退出 Leader, 引起一次无意义的 term 增加.
+这个变体是安全的: 接收者没有改变任何状态, 效果等同于这个请求丢失了, 而 Raft 本身允许丢消息.
 这时 N1 的 Leadership 虽然不会丢失, 但已经无法向 N3 复制日志了, 因为 N3 的 term 更大,
 N1 必须退出 Leader 到 Candidate 重新用更大的 term(至少是3) 来选举(raft 使用 pre-vote 来一定程度上避免这个问题), 造成短暂的不可用.
 

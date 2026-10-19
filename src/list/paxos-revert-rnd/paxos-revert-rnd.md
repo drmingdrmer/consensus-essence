@@ -28,6 +28,9 @@ It's worth noting that Paxos's `last_rnd` corresponds to Raft's `(term, voted_fo
 The main objective of implementing reversions is to handle conflicts that emerge due to [partial order relations](https://zh.wikipedia.org/wiki/偏序关系) in consensus protocols.
 For example, consider a Raft cluster where Follower N3, unaware of any logs from term=2, initiates an election for term=3.
 N1 and N2 would deny N3's request for votes because N3's log is outdated.
+This example assumes a variant of Raft. A node that receives a `RequestVote` with a higher term checks the candidate's log first. If the log is not up-to-date, the node rejects the request and keeps its own term. [Openraft](https://github.com/databendlabs/openraft/blob/79372b4dff4312f5eb344db76d5ed1dffe69fac7/openraft/src/engine/engine_impl.rs#L284-L307) implements this rule: it checks the log before it updates the term.
+Standard Raft would raise the receiver's term first, which makes N1 step down at once and causes a term increase that elects no one.
+The variant is safe: the receiver changes no state, so the request has the same effect as a lost message, which Raft tolerates.
 Although N1 retains its leader status, it cannot replicate logs to N3, as N3 is at a higher term.
 Consequently, N1 is compelled to transition from Leader to Candidate and initiate a new election with a higher term number (at least 3), leading to a temporary service interruption.
 
