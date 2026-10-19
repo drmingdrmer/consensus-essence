@@ -3,10 +3,13 @@
 ### The capability in Paxos to revert `last_rnd`
 
 In Paxos, the `last_rnd` variable is designed to be monotonically increasing. When an acceptor receives a proposal with a round number (`rnd`) higher than its current `last_rnd` during either `phase-1` or `phase-2`, it updates its `last_rnd` accordingly. Despite this, **`last_rnd` can be reverted while still maintaining correctness**: If during `phase-1`, a proposer increases an acceptor's `last_rnd` from 1 to 2, a reversion can be initiated before `phase-2` commences. By sending a `phase-1-revert` message, the proposer can request the acceptor to rollback `last_rnd` from 2 to 1, provided the acceptor's `last_rnd` remains at 2.
+After sending `phase-1-revert`, the proposer must abandon `rnd` 2 for good: it ignores every reply for `rnd` 2, including late ones, and never sends `phase-1` or `phase-2` with `rnd` 2 again.
+Otherwise, a reverted acceptor may accept a value at `rnd` 1, and the proposer may then use its old replies to write a different value at `rnd` 2, so two values get chosen.
 
 ### Correctness of reversions
 
 The logic behind revert operations is straightforward. A reversion can be equated to an artificially induced **message loss** event. Since Paxos is designed to handle message loss without compromising consistency, the correctness of the protocol is not affected by such reversions.
+This equivalence relies on the proposer abandoning `rnd` 2: the acceptor returns to its state before the `phase-1` request of `rnd` 2 arrived, and the proposer never uses any reply to that request, so the system is in the same state as if the request had been lost.
 
 ### Reversion example
 

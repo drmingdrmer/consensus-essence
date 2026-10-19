@@ -2,8 +2,11 @@
 
 **Paxos 中的 `last_rnd` 是允许回退的**: 虽然 Paxos 中定义 `last_rnd`  为单调增: 如果 acceptor 在 `phase-1` 或 `phase-2` 收到更大的 `rnd`, 则用它覆盖自己的 `last_rnd`. **但 `last_rnd` 实际上可以在保证正确性的前提下支持回退**: 如果 proposer 在 `phase-1` 将 acceptor 的 `last_rnd` 从 1 提升到 2,
 那么只要没进入 `phase-2`, proposer 都可以再发送一个 `phase-1-revert` 消息要求 acceptor 将 `last_rnd` 从 2 回退到 1; 而 acceptor 的 `last_rnd` 如果还是 2, 就可以进行回退.
+发送 `phase-1-revert` 之后, proposer 必须永久放弃 `rnd`=2: 忽略所有 `rnd`=2 的回复(包括之后才到达的), 也不再用 `rnd`=2 发送 `phase-1` 或 `phase-2`.
+否则 acceptor 回退后可能接受 `rnd`=1 的值, proposer 又用旧的回复以 `rnd`=2 写入另一个值, 两个值都被选中.
 
 **Revert 的正确性** 容易直观的看出: revert 可以看作一个人为制造的**丢消息**的事件, 而 Paxos 本身又是允许丢消息而不破坏一致性的.
+这个等价依赖 proposer 放弃 `rnd`=2: acceptor 回到了收到 `rnd`=2 的 `phase-1` 请求之前的状态, proposer 也不再使用这个请求的任何回复, 所以系统状态与这个请求丢失时相同.
 
 **举个 revert 操作的栗子**: 假设当前 P1, P2, P3 分别用 `rnd`=1,2,3 执行了 phase-1: 那么:
 可以执行的revert操作是:
