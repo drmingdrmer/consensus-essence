@@ -2,6 +2,9 @@
   "ignorePatterns": [
     {
       "pattern": "^https://www.zhihu.com/people/"
+    },
+    {
+      "pattern": "^https://stackoverflow\\.com/"
     }
   ],
   "timeout": "3s",
