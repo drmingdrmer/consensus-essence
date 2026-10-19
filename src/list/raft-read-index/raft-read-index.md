@@ -47,15 +47,15 @@ It is obviously correct because it simply combines requirements of **case-lt** a
 
 [Openraft][] implements this optimization: A brief proof can be found in: [Openraft linearizable read][read].
 
-For Openraft application, it simply calls and blocks until [`Raft::ensure_linearizable()`][ensure_linearizable] returns, and the proceed reading process.
+For Openraft application, it simply calls and blocks until [`Raft::ensure_linearizable()`][ensure_linearizable] returns, and proceeds with reading only when the result is `Ok`.
 For example, [kv-store][] implemnts linearizable read with the following snippet:
 
 ```rust
 async fn read (app: Data<App>, req: Json<String>) -> Result<impl Responder> {
-    app.raft.ensure_linearizable().await;
+    app.raft.ensure_linearizable().await?;
 
     let state_machine = app.store.state_machine. read ().await;
-    let value = state_machine.data.get(&req.key).cloned();
+    let value = state_machine.data.get(&req.0).cloned();
     Ok(value)
 }
 ```

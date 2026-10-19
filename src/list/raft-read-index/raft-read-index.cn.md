@@ -80,14 +80,14 @@
 Openraft 对于 linearizable read 简单的证明在这里: [Openraft linearizable read ][read] .
 
 其中基于 Openraft 的 application 要做的只是调用 [`Raft::ensure_linearizable()`][ensure_linearizable],
-这个函数返回时表明线性读的条件已经具备, 例如在 [kv-store][] 例子中实现的线性读:
+这个函数返回 `Ok` 时表明线性读的条件已经具备, 例如在 [kv-store][] 例子中实现的线性读:
 
 ```rust
 async fn read (app: Data<App>, req: Json<String>) -> Result<impl Responder> {
-    app.raft.ensure_linearizable().await;
+    app.raft.ensure_linearizable().await?;
 
     let state_machine = app.store.state_machine. read ().await;
-    let value = state_machine.data.get(&req.key).cloned();
+    let value = state_machine.data.get(&req.0).cloned();
     Ok(value)
 }
 ```
