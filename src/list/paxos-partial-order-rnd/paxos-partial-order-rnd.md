@@ -15,6 +15,12 @@ For instance, in a distributed storage system, one could establish two separate 
 - One group of Proposers might use powers of 2 for `rnd`, targeting transaction A;
 - The other group may use powers of 3 for `rnd`, targeting transaction B.
 
-These two groups operate independently, ensuring that only one transaction can be committed at a time, thus avoiding Paxos’s livelock issues. Additionally, multiple Proposers within the same group can provide redundancy and high availability, without the single point of failure risk inherent in 2PC's Coordinator.
+These two groups operate independently, ensuring that only one transaction can be committed at a time, thus avoiding Paxos’s livelock issues between the two groups. Additionally, multiple Proposers within the same group can provide redundancy, without the single point of failure risk inherent in 2PC's Coordinator.
+
+However, the two groups can block each other. In the figure above, after A1 has promised 3 and A2 has promised 2, suppose A3 goes down. A1 rejects every power of 2 and A2 rejects every power of 3, so neither group can make progress, even though A1 and A2 form a majority.
+
+Any Proposer can then recover the way P6 does in the figure. It picks a `rnd` of the form 2ⁿ·3ᵐ that is a multiple of every promise in its quorum: 6 here, or 36 if the promises have grown to 4 and 9. The recovering Proposer runs plain Paxos: if phase-1 returns accepted values, it adopts the one with the greatest `rnd`, so it may commit the other group's transaction. This greatest `rnd` always exists. A value is accepted only at a `rnd` that has finished phase-1, and the quorums of two such `rnd`s share an Acceptor whose promises only grow, so all accepted `rnd`s are comparable.
+
+A recovery `rnd` can be greater than the `rnd`s of both groups, so recovery falls back to the **non-mandatory** conflict exclusion of Paxos: concurrent recovering Proposers may preempt each other, and recovery is only guaranteed to finish once a single recovering Proposer runs alone long enough. High availability therefore depends on this recovery, and recovery has the same liveness as classic Paxos.
 
 In conclusion, **partial order Paxos cleverly combines the transaction exclusivity of 2PC with the robustness of Paxos. This fusion simplifies the complex two-layer framework found in distributed databases, such as Spanner, into a more streamlined single-layer architecture**.
