@@ -4,7 +4,7 @@ This approach is proposed by [neog24](https://github.com/neog24)
 
 ![](architecture.drawio.svg)
 
-In Raft, the **ReadIndex**  is used to implement linearizable read operations. We can lower the latency of read requests by relaxing the ordering requirements in the standard Raft protocol.
+In Raft, the **ReadIndex**  is used to implement linearizable read operations. We can lower the latency of read requests by relaxing the ordering that the standard ReadIndex provides.
 
 ### ReadIndex Process in Raft
 
@@ -33,10 +33,10 @@ With this optimization, read operations still satisfy the linearizability proper
 
 ### Relaxed Ordering
 
-In this optimization, we relax the strict ordering of requests as defined in the standard Raft protocol:
+In this optimization, we relax the ordering that the standard ReadIndex provides, down to what linearizability requires:
 
-- **Standard Raft definition**: There is a clear sequential ordering of requests received by the server. Later requests should see the state changes produced by earlier write requests and the state observed by earlier read requests.
-- **Optimized definition**: A clear ordering between requests is only established when a request has already sent a response back to the client. If a second request is received before the first request has finished processing, there is no defined order between them on the server side. The processing order of these concurrent requests is arbitrary and does not violate consistency.
+- **Standard ReadIndex**: A read sees every log committed before the read arrives, including writes that have not replied to the client yet. Linearizability does not require the read to see such writes.
+- **Optimized ReadIndex**: A clear ordering between requests is only established when a request has already sent a response back to the client. If a second request is received before the first request has finished processing, there is no defined order between them on the server side. The processing order of these concurrent requests is arbitrary and does not violate consistency. This is the order that linearizability defines. Standard Raft follows it too: if a write is received but not yet committed when a read arrives, the read may not see the write.
 
 ### Guaranteeing Linearizability
 
