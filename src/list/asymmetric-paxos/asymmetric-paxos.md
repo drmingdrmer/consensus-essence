@@ -33,6 +33,12 @@ With such a policy: Redundancy is **200%**; Tolerates **1** failure; Availabilit
 
 
 
+Any 2 of the 4 values must be linearly independent, so that any 2 of them rebuild $x, y$. This holds in ordinary arithmetic. It fails in $GF(2^8)$, which erasure codes usually use: there $x-y = x+y$, so use $x+2y$ instead of $x-y$.
+
+**Recovery**: Each acceptor stores its value together with the `rnd` at which it accepted the value, and a value id: the `rnd` at which this $x, y$ was first proposed. A proposer that re-proposes a recovered $x, y$ keeps its value id. In phase-1, the proposer takes the value id of the reply with the greatest accepted `rnd`, and rebuilds $x, y$ from all replies with this value id. If $x, y$ has been committed, then by the same induction as in classic Paxos, every greater `rnd` re-proposes it with the same value id. The phase-1 quorum shares at least 2 acceptors with the quorum that committed it, so the rebuild finds at least 2 values with this value id. If fewer than 2 replies carry this value id, no value has been committed at a `rnd` smaller than the proposer's, and the proposer may propose its own value, using its own `rnd` as the value id. The 5-node example below uses the same rule with 3 in place of 2.
+
+
+
 Another example is **asymmetric Paxos 5-4**: 5 asymmetric acceptors can store 3 independent values
 $x, y, z$:
 
