@@ -17,14 +17,28 @@ This is not a bug but people tend to interpret it in the wrong way.
     Note that proposal 100:b has been chosen.
 8.  P1 resumes, chooses value a and sends 'accept 1:a' to BC
 9.  B doesn't accept it, but C accepts it because C has never promise anything.
-    Status is: A(-:-,100) B(100:b,100) C(1:a,-). The chosen proposal is abandon, Paxos fails.
+    C keeps only its last accepted proposal, so 1:a replaces 100:b.
+    Status is: A(-:-,100) B(100:b,100) C(1:a,-).
+10. P3 sends 'prepare 101' to AC. A reports no accepted proposal, and C reports 1:a.
+    P3 chooses value a and sends 'accept 101:a' to AC. Both accept it.
+    Status is: A(101:a,101) B(100:b,100) C(101:a,101).
+    Now 101:a is chosen, but 100:b was chosen in step 7. Paxos fails.
 ```
 
 #### Explanation:
 
-Missed something in step 7.
+The execution assumes that an acceptor keeps only its last accepted proposal.
+Paxos Made Simple instead requires an acceptor to remember the highest-numbered
+proposal it has accepted. Then C would keep 100:b in step 9, and P3 would
+choose b in step 10.
+
+An implementation that overwrites its accepted proposal on every accept needs
+another rule, which is missed in step 7.
 When C processes `accept 100:b` it sets its state to `C(100:b,100)`.
 **By accepting a value the node is also promising to not accept earlier values.**
+
+Both rules keep the same invariant: the accepted proposal that an acceptor
+reports never moves to a lower number.
 
 
 Sadly:
