@@ -34,7 +34,7 @@ When N₂, as a Candidate at Term=4, initiates an election,
 it sends to N₁ and N₃ with prevLogTerm=1, prevLogIndex=2, entries=[(Term=1,
 index=3), (Term=3, index=4)];
 
-At this point, N₁ accepts the logs, N₂ accepts the logs and deletes its own
+At this point, N₁ accepts the logs, N₃ accepts the logs and deletes its own
 local log: (Term=2, index=4), which certainly has not been committed.
 
 ![](raft-election-append-entries.excalidraw.png)

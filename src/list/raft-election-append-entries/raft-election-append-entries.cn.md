@@ -35,7 +35,7 @@ N₂ 作为 Term=4 的 Candidate 发起election时,
 将 prevLogTerm=1, prevLogIndex=2, entries=[(Term=1, index=3), (Term=3, index=4)]
 的 AppendEntries 信息也一起发给 N₁ 和 N₃;
 
-此时 N₁ 接受 log, N₂ 接受 log 并删除自己本地的 log: (Term=2, index=4),
+此时 N₁ 接受 log, N₃ 接受 log 并删除自己本地的 log: (Term=2, index=4),
 它一定不是被 committed.
 
 ![](raft-election-append-entries.excalidraw.png)
