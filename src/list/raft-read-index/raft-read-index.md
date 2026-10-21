@@ -8,7 +8,7 @@ Raft's ReadIndex process ensures consistent reads across the cluster through the
 
 2. **Step-2: Setting the ReadIndex**: Once a log is committed for the current term, the leader sets the ReadIndex to its current CommitIndex.
 
-3. **Step-3: Leader Confirmation**: A heartbeat is sent to the quorum to ensure no other higher term exists at that moment.
+3. **Step-3: Leader Confirmation**: A heartbeat is sent to the quorum to ensure no leader of a higher term has been elected by that moment.
 
 4. **Step-4: Index Synchronization**: The leader waits for the StateMachine to apply entries up to the ReadIndex before reading, ensuring data consistency.
 
@@ -24,7 +24,7 @@ When a Leader node(at term `Term_1`) receives a read request labeled `read_1` at
 
 Assume `read_0` saw the StateMachine's data up to log entry `(Term_0, index_0)`. We then consider three potential scenarios regarding `Term_0`:
 
-- **case-gt: Higher Term** (`Term_0 > Term_1`): A heartbeat sent at time `t`(`t > time_1`) prevents the confusion of having a higher term exists in time range `(0, t)`(Step-3).
+- **case-gt: Higher Term** (`Term_0 > Term_1`): A heartbeat sent at time `t`(`t > time_1`) is accepted by a quorum (Step-3). A Leader of a higher term needs votes from a quorum, and the two quorums share at least one node. If this node had voted for the higher term before the heartbeat arrived, it would have rejected the heartbeat. So no Leader of a higher term was elected in time range `(0, t)`, and no read before `time_1` could see a log of a higher term.
 
 - **case-lt: Lower Term** (`Term_0 < Term_1`): Raft guarantees that the current Leader has all logs that are previously committed. Consequently, `index_0` must be lower than the no-op log index (`NoopIndex`) that is written upon the Leader's election. For consistency, the StateMachine must include logs up to at least this no-op entry(`NoopIndex`) when `read_1` is processed.
 

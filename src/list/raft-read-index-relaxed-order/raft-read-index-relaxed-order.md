@@ -14,7 +14,7 @@ Raft's ReadIndex process ensures consistent reads across the cluster through the
 
 2. **Step-2: Setting the ReadIndex**: Once a log is committed for the current term, the leader sets the ReadIndex to its current CommitIndex.
 
-3. **Step-3: Leader Confirmation**: A heartbeat is sent to the quorum to ensure no other higher term exists at that moment.
+3. **Step-3: Leader Confirmation**: A heartbeat is sent to the quorum to ensure no leader of a higher term has been elected by that moment.
 
 4. **Step-4: Index Synchronization**: The leader waits for the StateMachine to apply entries up to the ReadIndex before reading, ensuring data consistency.
 

@@ -6,7 +6,7 @@
 
 -   **步骤-1**. Leader 检查自己当前 Term 的 log 是否已提交. 如果没有, 放弃读, 返回, 等待当前 Term 的 log 提交.
 -   **步骤-2**. Leader 取当前的 CommitIndex 作为 ReadIndex .
--   **步骤-3**. 向 quorum 发送 heartbeat , 确认自己是唯一的 Leader.
+-   **步骤-3**. 向 quorum 发送 heartbeat , 确认此前没有选出更高 Term 的 Leader.
 -   **步骤-4**. 等待 AppliedIndex 达到或超过 ReadIndex 再对 StateMachine 进行读取操作.
 
 通过以上步骤这个流程保证了:
@@ -31,7 +31,10 @@
 
 -   **case-gt**: `Term_0 > Term_1`:
 
-    为避免这种不可处理的情况发生, Leader 在时间 `t` 向一个 quorum 发 heartbeat 请求, 以确认在时间范围 `(0, t)` 内都没有更高的 Term;
+    为避免这种不可处理的情况发生, Leader 在时间 `t` 向一个 quorum 发 heartbeat 请求, 并得到这个 quorum 的接受.
+    更高 Term 的 Leader 需要一个 quorum 的选票, 两个 quorum 至少有一个共同节点;
+    如果这个节点在收到 heartbeat 之前已经投票给更高的 Term, 它就会拒绝 heartbeat.
+    所以在时间范围 `(0, t)` 内没有选出更高 Term 的 Leader;
 
     而显然 `t` 在收到读请求 `read_1` 之后, 即 `t >= time_1`,
 

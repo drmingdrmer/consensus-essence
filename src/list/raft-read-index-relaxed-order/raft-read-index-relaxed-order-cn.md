@@ -10,7 +10,7 @@ This approach is proposed by [neog24](https://github.com/neog24)
 
 1. **检查当前 Term 的日志是否已提交**：Leader 检查自己在当前 Term 内的日志是否已提交。如果未提交，则放弃读操作，等待日志提交后再处理。
 2. **获取 ReadIndex**：Leader 将当前的 **CommitIndex**（已提交的最高日志索引）作为 ReadIndex。
-3. **发送心跳确认 Leader 身份**：Leader 向 Quorum 发送 **heartbeat**，以确认自己仍然是集群的唯一 Leader。
+3. **发送心跳确认 Leader 身份**：Leader 向 Quorum 发送 **heartbeat**，以确认此前没有选出更高 Term 的 Leader。
 4. **等待 StateMachine 应用日志**：等待 **AppliedIndex**（已应用到 StateMachine 的最高日志索引）达到或超过 ReadIndex，然后对 StateMachine 进行读取操作。
 
 上述步骤保证了 Linearizable 特性：在读操作发生的时间点之前已经提交的所有数据，都能够在此次读操作中被读取到。
