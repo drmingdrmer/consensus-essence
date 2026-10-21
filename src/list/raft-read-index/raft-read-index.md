@@ -97,9 +97,11 @@ In this scenario, we can see the difference between with and without this optimi
 - Without this optimization, there might be a need to wait again for a larger log index to be committed: `max(c2, n2)`;
 - With it, it avoids this kind of **livelock** and only requires waiting for the original `max(c1, n1)` to be applied;
 
-Therefore, in standard Raft, it is **possible** that a read request may never be executed, while in Openraft, this situation does not occur.
+Therefore, in standard Raft, it is **possible** that a read request may never be executed because its target keeps moving, while in Openraft, the target never moves.
 
-Of course, this is an unlikely issue, but in standard Raft, we still need to spend time considering and proving that it **will not cause a problem**. In contrast, Openraft's simplified logic completely avoids the occurrence of **livelocks**, making correctness verification easier.
+Of course, this is an unlikely issue, but in standard Raft, we still need to spend time considering and proving that it **will not cause a problem**. In contrast, Openraft's simplified logic completely avoids this kind of **livelock**, making correctness verification easier.
+
+However, a fixed target alone does not guarantee that the read finishes. The node may lose leadership before `n1` is committed. If the new Leader's log ends before `n1`, the node deletes its noop log at `n1` to match the new Leader. The wait in `ensure_linearizable()` checks only AppliedIndex, so if no more writes arrive, the read waits forever. The caller therefore still needs to cancel the read and retry it on the new Leader, for example after a timeout.
 
 The key to optimization is to simplify logic, not necessarily to reduce code (in terms of form). Simple logic sometimes requires more code to describe, and less code can also mean more complex underlying logic.
 

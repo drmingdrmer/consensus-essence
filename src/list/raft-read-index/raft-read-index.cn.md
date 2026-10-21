@@ -131,7 +131,9 @@ async fn ensure_linearizable(&mut self, tx: ClientReadTx<C>) {
 
 这是一个不太可能造成问题的问题, 但在标准 Raft
 中我们仍然需要花时间去考虑并证明它 **不会造成问题**,
-Openraft 简化后的逻辑中, 完全避免了 **活锁** 的发生. 让验证正确性更容易.
+Openraft 简化后的逻辑中, 完全避免了这种 **活锁** 的发生. 让验证正确性更容易.
+
+但等待的目标固定不变, 并不保证读请求一定完成. node 可能在 `n1` commit 之前失去 leadership. 如果新 Leader 的 log 在 `n1` 之前就结束了, node 会删除自己在 `n1` 处的 noop log, 与新 Leader 保持一致. `ensure_linearizable()` 中的等待只检查 AppliedIndex, 所以如果之后没有新的写入, 这个读请求会永远等下去. 因此调用者仍然需要取消这个读请求, 并到新 Leader 上重试, 例如在等待超时之后.
 
 
 [Openraft]: https://github.com/datafuselabs/openraft
