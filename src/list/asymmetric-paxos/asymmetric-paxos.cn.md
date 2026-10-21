@@ -6,7 +6,7 @@
 
 在 [classic Paxos](http://lamport.azurewebsites.net/pubs/pubs.html#paxos-simple) 中, acceptors 是**对等**的 :
 
-![classic](asymmetric-paxos-classic.jpeg)
+![classic](images/asymmetric-paxos-classic.png)
 
 - 一个 proposer(quorum是: $q_i$) 将 $x$ 的值存储到 acceptor 上(至少2个 acceptor 上以完成对 $x$ 的提交).
 
@@ -26,7 +26,7 @@
 在这样一个 3 节点 paxos 集群中:
 - 数据冗余度是 300%;
 - 容忍 1 个节点宕机;
-- 可用性大约是 ${ 3 \choose 2  } p^2$, 其中 $p$ 是 acceptor 单位时间内的故障率.
+- 不可用的概率大约是 ${ 3 \choose 2  } p^2$, 其中 $p$ 是每个 acceptor 宕机的概率, 各 acceptor 之间相互独立.
 
 
 
@@ -55,7 +55,7 @@
 在这样一个 4 节点非对称 paxos 集群中:
 - 数据冗余度是 200%;
 - 容忍 1 个节点宕机;
-- 可用性大约是 ${ 4 \choose 2  } p^2$, 其中 p 是 acceptor 单位时间内的故障率.
+- 不可用的概率大约是 ${ 4 \choose 2  } p^2$.
 
 
 4 个值中任意 2 个都必须线性无关, 才能用其中任意 2 个重建 $x, y$. 在普通算术中这成立; 但在纠删码常用的 $GF(2^8)$ 中, $x-y = x+y$, 这时要用 $x+2y$ 代替 $x-y$.
@@ -75,9 +75,9 @@
 
 
 在这样一个 5 节点非对称 paxos 集群中:
-- 数据冗余度是 140%;
+- 数据冗余度是 166.7%(5 个值, 每个是原始数据的 1/3);
 - 容忍 1 个节点宕机;
-- 可用性大约是 ${ 5 \choose 2  } p^2$.
+- 不可用的概率大约是 ${ 5 \choose 2  } p^2$.
 
 ### Summary
 
@@ -85,4 +85,4 @@
 
 这个算法只能应用于 paxos, 因为 [raft](https://raft.github.io/) 的 leader 只从本地一个副本重建committed的数据, 而这个算法需要2个或更多节点的数据.
 
-![chart](asymmetric-paxos-chart.jpeg)
+![chart](images/asymmetric-paxos-chart.png)

@@ -6,14 +6,14 @@ paxos to reduce data redundancy.
 In [classic Paxos](http://lamport.azurewebsites.net/pubs/pubs.html#paxos-simple),
 acceptors are **symmetric**:
 
-![classic](asymmetric-paxos-classic.jpeg)
+![classic](images/asymmetric-paxos-classic.png)
 
 A proposer(quorum: $q_i$) stores value $x$ on acceptors(at least 2 acceptors) to commit $x$.
 To rebuild(read) $x$ from acceptors, another proposer(quorum: $q_j$) has to visit one of the acceptor that holds the committed value.
 Thus two quorums must have at least 1 common acceptors: $|q_i \cap q_j| \ge 1$.
 I.e., a quorum for a cluster of 3 is any 2 acceptors: $|q_i| \ge 2$.
 
-Redundancy is **300%**; Tolerates **1** failure; Availability is about ${ 3 \choose 2  } p^2$, where $p$ is acceptor failure rate.
+Redundancy is **300%**; Tolerates **1** failure; Unavailability is about ${ 3 \choose 2  } p^2$, where $p$ is the probability that an acceptor is down, independent of other acceptors.
 
 
 
@@ -29,7 +29,7 @@ To rebuild(read) $x, y$ from acceptors, another proposer(quorum: $q_j$) has to v
 Thus two quorums must have at least 2 common acceptors: $|q_i \cap q_j| \ge 2$.
 A quorum for a cluster of 4 is any 3 acceptors: $|q_i| \ge 3$.
 
-With such a policy: Redundancy is **200%**; Tolerates **1** failure; Availability is about ${ 4 \choose 2  } p^2$, where $p$ is acceptor failure rate.
+With such a policy: Redundancy is **200%**; Tolerates **1** failure; Unavailability is about ${ 4 \choose 2  } p^2$.
 
 
 
@@ -48,7 +48,7 @@ A proposer stores $x, y, z, x+y+z, x+2y+4z$ on acceptor 1 to 5.
 To rebuild these 3 values, this must hold: $|q_i \cap q_j| \ge 3$.
 Thus quorum size is at least 4: $|q_i| \ge 4$.
 
-Redundancy is **140%**; Tolerates **1** failure; Availability is about ${ 5 \choose 2  } p^2$.
+Redundancy is **166.7%** (5 values, each 1/3 of the data); Tolerates **1** failure; Unavailability is about ${ 5 \choose 2  } p^2$.
 
 
 
@@ -56,4 +56,4 @@ Redundancy is **140%**; Tolerates **1** failure; Availability is about ${ 5 \cho
 This algorithm applies to paxos and its variants but not to [raft](https://raft.github.io/).
 Because it requires more than one nodes to rebuild a committed value.
 
-![chart](asymmetric-paxos-chart.jpeg)
+![chart](images/asymmetric-paxos-chart.png)
