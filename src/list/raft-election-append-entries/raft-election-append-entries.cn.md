@@ -75,10 +75,11 @@ Nᵢ 在应答之前持久化 term, 投票和追加的 log.
 ∵ `t₀ >= Nᵢ.term >= Nᵢ.entries.last().term`:
 
 -   如果 `t₀ > Nᵢ.entries.last().term`,
-    则 Nᵢ 本地的 log 一定不是已经 committed (Raft 已经保证了 term 最大的 log
-    才可能是被 commit 的)
+    AppendEntries 可能删除 Nᵢ 本地 `prevLogIndex` 之后的 log.
+    Nᵢ 只在 `t₀ >= Nᵢ.term` 时接受这个请求, 这与它接受 term `t₀` 的 Leader 发来的 AppendEntries 的条件相同;
+    而 `RequestVote.entries` 的最后一条 log 的 term 是 `t₀`, 由 Log Matching 性质, 这些 log 与 term `t₀` 的 Leader 在相同 index 上的 log 相同.
 
-    ∴ 覆盖未 committed 的 log 不会导致已 committed 的 log 丢失.
+    ∴ 这次删除等同于 term `t₀` 的 Leader 发来的 AppendEntries 造成的删除, Raft 已经保证它不会导致已 committed 的 log 丢失.
 
 -   如果 `t₀ == Nᵢ.entries.last().term`,
     则 Nᵢ 本地的 log 和 RequestVote 中的 log 一定是 **兼容的**, 即只可能一个是另一个的子串.

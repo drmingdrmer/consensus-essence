@@ -78,11 +78,16 @@ Suppose the term of the last log entry in RequestVote is `t₀`:
 
 Given that `t₀ ≥ Nᵢ.term ≥ Nᵢ.entries.last().term`:
 
-- If `t₀ > Nᵢ.entries.last().term`, then Nᵢ's local logs are definitely not
-  committed (since Raft guarantees that only logs with the highest term can be
-  committed).
+- If `t₀ > Nᵢ.entries.last().term`, AppendEntries may delete Nᵢ's local logs
+  after `prevLogIndex`. Nᵢ accepts the request only when `t₀ >= Nᵢ.term`, the
+  same condition under which it accepts an AppendEntries from the Leader of term
+  `t₀`. And `RequestVote.entries` ends with a log of term `t₀`, so by the Log
+  Matching property these logs are the same as that Leader's logs at the same
+  indexes.
 
-  Therefore, overwriting uncommitted logs will not result in the loss of committed logs.
+  Therefore, this deletion is the same as one made by an AppendEntries from the
+  Leader of term `t₀`, which Raft already guarantees will not lose committed
+  logs.
 
 - If `t₀ == Nᵢ.entries.last().term`, then the local logs of Nᵢ and the logs in
   RequestVote must be **compatible**, meaning one is a substring of the other.
