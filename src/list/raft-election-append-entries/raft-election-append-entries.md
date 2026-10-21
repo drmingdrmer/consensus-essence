@@ -43,7 +43,9 @@ local log: (Term=2, index=4), which certainly has not been committed.
 **Protocol Changes**:
 
 Upon receiving a RequestVote, the node Nᵢ executes the logic for AppendEntries
-before dealing with Election logic:
+before dealing with Election logic, and runs both as one atomic step.
+`Nᵢ.term` below is Nᵢ's term before it receives this RequestVote: Nᵢ does not
+raise its term to `RequestVote.term` until the Election logic.
 
 If the term of the last log entry in RequestVote is not less than Nᵢ's term,
 i.e., `RequestVote.entries.last().term >= Nᵢ.term`,
@@ -51,6 +53,12 @@ i.e., `RequestVote.entries.last().term >= Nᵢ.term`,
 then do as AppendEntries does: append the logs to the local store (requiring
 `prevLogIndex, prevLogTerm, entries`), and return a response with
 `AppendEntriesOk = true`. Otherwise, return `AppendEntriesOk = false`.
+
+Then Nᵢ runs the Election logic of standard Raft. It raises its term to
+`RequestVote.term` if that term is greater, and then decides `voteGranted`.
+It persists the term, the vote and the appended logs before it replies. The
+reply carries both `AppendEntriesOk` and `voteGranted`. They are independent:
+Nᵢ may accept the logs but reject the vote.
 
 **Candidate Changes**:
 

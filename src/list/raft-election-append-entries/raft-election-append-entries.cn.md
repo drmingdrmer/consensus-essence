@@ -44,12 +44,17 @@ N₂ 作为 Term=4 的 Candidate 发起election时,
 **协议变化**:
 
 收到 RequestVote 的 node Nᵢ, 在执行 Election 固有的逻辑之前,
-执行 AppendEntries 的逻辑:
+执行 AppendEntries 的逻辑, 两步作为一个原子操作执行.
+下文的 `Nᵢ.term` 是 Nᵢ 收到这个 RequestVote 之前的 term: 在执行 Election 的逻辑之前, Nᵢ 不把 term 提升到 `RequestVote.term`.
 
 如果 RequestVote 中的最后一个log 的 term 不小于 Nᵢ 的 term, 即: `RequestVote.entries.last().term >= Nᵢ.term`
 
 则按照 AppendEntries 的逻辑将日志追加到本地(需要`prevLogIndex , prevLogTerm, entries`),
 并返回一个`AppendEntriesOk = true` 的应答; 否则返回`AppendEntriesOk = false`.
+
+然后 Nᵢ 执行标准 Raft 的 Election 逻辑: 如果 `RequestVote.term` 更大, 先把 term 提升到 `RequestVote.term`, 再决定 `voteGranted`.
+Nᵢ 在应答之前持久化 term, 投票和追加的 log.
+应答同时携带 `AppendEntriesOk` 和 `voteGranted`, 两者相互独立: Nᵢ 可以接受 log, 但拒绝投票.
 
 
 **Candidate 变化**:
