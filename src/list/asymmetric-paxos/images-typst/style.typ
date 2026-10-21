@@ -108,3 +108,74 @@
     body
   })
 }
+
+// A value card `w` pixels wide, centered on a timeline at (x, -y).
+// kind: "write" (stored), "read" (returned to the reader), "missed" (the
+// write never arrived) or "empty" (the reader found nothing).
+#let value(x, y, w, kind, label) = {
+  let pos = (x - w / 2, -y + 20)
+  let faded = slate.transparentize(45%)
+  if kind == "write" {
+    card(pos, w, 40, radius: 10, fill: white, stroke: pen(write-ink, 2.5), mono(fill: write-text, label))
+  } else if kind == "read" {
+    card(pos, w, 40, radius: 10, fill: white, stroke: pen(read-ink, 2.5), mono(fill: read-text, label))
+  } else if kind == "missed" {
+    card(pos, w, 40, radius: 10, fill: panel-fill, stroke: pen(faded, 2, dash: quorum-dash), mono(fill: faded, label))
+  } else {
+    card(pos, w, 40, radius: 10, fill: white, stroke: pen(read-ink, 2, dash: quorum-dash), small(fill: slate, label))
+  }
+}
+
+// P1 writes, then P2 reads, on one timeline per acceptor. Acceptor i stores
+// `stored.at(i)`. P1 writes to the first `written` acceptors; P2 reads every
+// acceptor from index `read-from` on. A ring marks each acceptor in both
+// quorums. `result` is what P2 rebuilds; `shared` explains the overlap.
+#let rw-figure(title, sub, stored, written, read-from, result, shared, card-w: 84) = {
+  let rows = range(stored.len()).map(i => 210 + 80 * i)
+  let first = rows.first()
+  let last = rows.last()
+  let read-first = rows.at(read-from)
+  let write-last = rows.at(written - 1)
+  let write-x = 240 + card-w / 2
+  let read-x = write-x + card-w + 100
+  let line-end = read-x + card-w / 2 + 60
+  let note-y = last + 114
+
+  diagram(960, note-y + 66, title, sub, {
+    panel((40, -110), 880, last - 30)
+    content((write-x, -152), small(fill: write-text)[P1 writes], anchor: "base")
+    content((read-x, -152), small(fill: read-text)[P2 reads], anchor: "base")
+
+    for (i, y) in rows.enumerate() {
+      let name = "a" + str(i + 1)
+      let mark = (end: ">", fill: lifeline-ink, length: 10, width: 9)
+      line((136, -y), (line-end, -y), stroke: pen(lifeline-ink, 2.5), mark: mark)
+      node((100, -y), "A" + str(i + 1), name: name)
+      if read-from <= i and i < written {
+        ring(name)
+      }
+    }
+
+    let quorum-w = card-w + 36
+    quorum((write-x - quorum-w / 2, -first + 38), quorum-w, write-last - first + 76, kind: "write")
+    quorum((read-x - quorum-w / 2, -read-first + 38), quorum-w, last - read-first + 76)
+
+    for (i, y) in rows.enumerate() {
+      let wrote = i < written
+      value(write-x, y, card-w, if wrote { "write" } else { "missed" }, stored.at(i))
+      if i < read-from {
+        continue
+      }
+      if wrote {
+        value(read-x, y, card-w, "read", stored.at(i))
+      } else {
+        value(read-x, y, card-w, "empty", [empty])
+      }
+    }
+
+    let result-x = line-end + 36
+    let result-y = (read-first + last) / 2 - 26
+    note((result-x, -result-y), 904 - result-x, kind: "ok", result)
+    note((40, -note-y), 880, shared)
+  })
+}

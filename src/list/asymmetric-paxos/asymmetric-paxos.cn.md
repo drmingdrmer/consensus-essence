@@ -34,7 +34,7 @@
 
 因为我们可以从一个线性方程组 $ax+by=d_1, cx+dy=d_2$ 解得 $x, y$ 的值, 所以可以利用这个特性, 让 paxos 中的 acceptor 上存储不同的值(asymmetric), 来实现数据冗余的降低.
 
-![ec](asymmetric-paxos-ec.jpeg)
+![ec](images/asymmetric-paxos-ec.png)
 
 - 一个 proposer(quorum是: $q_i$) 将 $x, y, x+y, x-y$ 存储到 acceptor 1 到 4 上(至少成功3个, 以完成对 $x, y$ 的提交).
 
@@ -67,7 +67,7 @@
 
 一个5节点的非对称 paxos 集群中, 可以存储3个相互独立的值 $x, y, z$:
 
-![ec53](asymmetric-paxos-ec-53.jpeg)
+![ec53](images/asymmetric-paxos-ec-53.png)
 
 一个 proposer 将 $x, y, z, x+y+z, x+2y+4z$ 5个值存储到 acceptor 1 到 5 上.
 为了重新读到这 3 个值, 必须保证: $|q_i \cap q_j| \ge 3$.

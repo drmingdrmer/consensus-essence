@@ -21,7 +21,7 @@ Redundancy is **300%**; Tolerates **1** failure; Unavailability is about ${ 3 \c
 Because we can rebuild $x, y$ from a linear equation system $ax+by=d_1, cx+dy=d_2$,
 acceptor states can be **asymmetric** so that more data can be stored:
 
-![ec](asymmetric-paxos-ec.jpeg)
+![ec](images/asymmetric-paxos-ec.png)
 
 
 A proposer(quorum: $q_i$) stores $x, y, x+y, x-y$ on acceptor 1 to 4(at least 3 of them) to commit $x, y$.
@@ -42,7 +42,7 @@ Any 2 of the 4 values must be linearly independent, so that any 2 of them rebuil
 Another example is **asymmetric Paxos 5-4**: 5 asymmetric acceptors can store 3 independent values
 $x, y, z$:
 
-![ec53](asymmetric-paxos-ec-53.jpeg)
+![ec53](images/asymmetric-paxos-ec-53.png)
 
 A proposer stores $x, y, z, x+y+z, x+2y+4z$ on acceptor 1 to 5.
 To rebuild these 3 values, this must hold: $|q_i \cap q_j| \ge 3$.
