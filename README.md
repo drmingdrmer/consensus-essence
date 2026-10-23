@@ -33,6 +33,8 @@ This repo is a list of distributed consensus protocol's bugs, flaws, deceptive t
   | by [neog24](https://github.com/neog24)
 - [Raft: (Generalize): Read-Write Quorum](src/list/raft-read-write-quorum/raft-read-write-quorum.md)
   | 🌎 [中文版](src/list/raft-read-write-quorum/raft-read-write-quorum.cn.md)
+- [Raft: (Variant): Joint Consensus Needs No Log Barrier, but Joint Rollback Does](src/list/raft-joint-rollback-barrier/raft-joint-rollback-barrier.md)
+  | 🌎 [中文版](src/list/raft-joint-rollback-barrier/raft-joint-rollback-barrier.cn.md)
 
 ---
 
