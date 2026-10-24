@@ -43,6 +43,10 @@ links to every entry.
   `This approach is proposed by [name](url)`.
 - Both language files say the same thing. A change to one goes into the
   other in the same commit.
+- An entry is concise and accurate. It states the claim, proves it, and
+  gives just enough examples to make it concrete. It does not extend to
+  related topics. For example, an entry that proves a condition is
+  enough for safety does not add a section on what fails without it.
 
 ## Adding an entry to README.md
 
