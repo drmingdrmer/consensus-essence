@@ -37,6 +37,8 @@ This repo is a list of distributed consensus protocol's bugs, flaws, deceptive t
   | 🌎 [中文版](src/list/raft-joint-rollback-barrier/raft-joint-rollback-barrier.cn.md)
 - [Raft: (Bug): Single-Server Change Loses a Committed Config](src/list/raft-single-server-change/raft-single-server-change.md)
   | 🌎 [中文版](src/list/raft-single-server-change/raft-single-server-change.cn.md)
+- [Raft: (Generalize): Single-Step Change Needs Only Quorum Overlap](src/list/raft-single-step-change/raft-single-step-change.md)
+  | 🌎 [中文版](src/list/raft-single-step-change/raft-single-step-change.cn.md)
 
 ---
 
